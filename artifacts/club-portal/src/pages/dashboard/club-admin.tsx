@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetClubAdminDashboardQueryKey, getGetClubQueryKey, getListEventsQueryKey } from "@workspace/api-client-react";
-import { UsersIcon, CheckCircleIcon, CalendarIcon, BellIcon, ImageIcon, EditIcon, XCircleIcon, PlusIcon, MegaphoneIcon } from "lucide-react";
+import { UsersIcon, CheckCircleIcon, CalendarIcon, BellIcon, ImageIcon, EditIcon, XCircleIcon, PlusIcon, MegaphoneIcon, MapPinIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ImageUploadField } from "@/components/ImageUploadField";
 

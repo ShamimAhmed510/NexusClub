@@ -117,6 +117,35 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Club"
+    post:
+      operationId: createClub
+      tags: [clubs]
+      summary: Create a new club (overseer only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClubBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Club"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /clubs/{slug}:
     get:
       operationId: getClub
@@ -748,6 +777,18 @@ components:
         websiteUrl: { type: string }
         facebookUrl: { type: string }
         instagramUrl: { type: string }
+    CreateClubBody:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        category: { type: string }
+        shortDescription: { type: string }
+        description: { type: string }
+        accentColor: { type: string }
+        adminUsername: { type: string }
+        adminPassword: { type: string }
+        adminFullName: { type: string }
     ClubDetail:
       type: object
       properties:
@@ -832,6 +873,10 @@ components:
         clubName: { type: string }
         fullName: { type: string }
         email: { type: string }
+        studentId:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
         message:
           type: ["string", "null"]
         status:

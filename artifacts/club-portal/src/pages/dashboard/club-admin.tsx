@@ -302,9 +302,15 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                           <h3 className="font-bold">{req.fullName}</h3>
                           <span className="text-xs text-muted-foreground">{format(new Date(req.createdAt), 'MMM d')}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{req.email}</p>
+                        <p className="text-sm text-muted-foreground">{req.email}</p>
+                        {req.studentId && (
+                          <p className="text-xs text-muted-foreground">ID: {req.studentId}</p>
+                        )}
+                        {req.department && (
+                          <p className="text-xs text-indigo-600 font-medium mb-1">{req.department}</p>
+                        )}
                         {req.message && (
-                          <div className="bg-background p-3 rounded-md border border-border text-sm italic">
+                          <div className="bg-background p-3 rounded-md border border-border text-sm italic mt-2">
                             "{req.message}"
                           </div>
                         )}

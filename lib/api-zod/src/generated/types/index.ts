@@ -14,6 +14,7 @@ export * from "./authSession";
 export * from "./club";
 export * from "./clubAdminDashboard";
 export * from "./clubDetail";
+export * from "./createClubBody";
 export * from "./createEventBody";
 export * from "./createNoticeBody";
 export * from "./createNoticeBodyScope";

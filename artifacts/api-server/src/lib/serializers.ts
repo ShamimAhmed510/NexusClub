@@ -144,6 +144,8 @@ export function serializeJoinRequest(
     clubName: string;
     fullName: string;
     email: string;
+    studentId?: string | null;
+    department?: string | null;
   },
 ) {
   return {
@@ -154,6 +156,8 @@ export function serializeJoinRequest(
     clubName: r.clubName,
     fullName: r.fullName,
     email: r.email,
+    studentId: r.studentId ?? null,
+    department: r.department ?? null,
     message: r.message,
     status: r.status,
     createdAt: r.createdAt.toISOString(),

@@ -1,0 +1,87 @@
+University Club Management System (MERN Stack Monorepo) – Fix & Feature Update Request
+Please fix issues and update features in my existing University Club Management System (MERN Stack Monorepo) project.
+⚠️ Important Constraints:
+•	Do NOT remove or break any existing working features. 
+•	Keep authentication system fully intact. 
+•	Maintain full MERN stack structure (Frontend + Backend + Database). 
+•	Apply fixes without affecting existing stable modules. 
+•	Project must remain properly organized in Monorepo structure. 
+📁 0. Monorepo Structure Requirement (IMPORTANT)
+•	Ensure the project is properly organized as a monorepo 
+•	Maintain clear separation of: 
+o	client/ (Frontend - React) 
+o	server/ (Backend - Express/Node) 
+•	All configurations, API calls, and environment variables must work properly in monorepo setup 
+•	Ensure correct running commands for both frontend and backend 
+🔴 1. Upload Error Fix (Critical Bug)
+I am getting this error:
+"Failed to generate upload URL"
+✔ Fix Required:
+•	Check file upload system (Cloudinary or local storage) 
+•	Ensure all required environment variables are correctly configured 
+•	Fix upload API endpoint logic 
+•	Gallery/media upload must work properly 
+•	Ensure valid image URL is returned after upload 
+🔴 2. Member Join Request Issue
+•	When a member sends a club joining request, the Club Admin cannot see full member details 
+✔ Fix Required:
+Admin must be able to view:
+•	Member ID 
+•	Email 
+•	Department 
+✔ Also ensure:
+•	Data is properly saved in database 
+•	Backend API returns correct request data 
+•	Frontend correctly displays join requests 
+🔴 3. Club Notice & Media System Issues
+❌ Notice Publish Bug:
+•	Club Admin creates notice → clicking Publish does not work 
+✔ Fix Required:
+•	Notice must be saved correctly in DB 
+•	After publishing: 
+o	Notice becomes ACTIVE 
+o	Visible to all club members immediately 
+❌ Image / Media Upload Issues:
+Fix all upload issues:
+•	Club Logo upload not working 
+•	Cover image upload not working 
+•	Gallery / Media image upload not working 
+✔ Required Fix:
+•	Proper file upload handling (Multer or Cloudinary) 
+•	Correct DB storage (image URL/path) 
+•	Proper frontend rendering of uploaded images 
+🔴 4. System Overseer Feature Update
+❌ Missing Feature:
+•	System Overseer currently cannot create clubs 
+✔ New Feature Required:
+System Overseer must be able to:
+•	Create new clubs 
+•	Assign: 
+o	Club Name 
+o	Admin Username 
+o	Admin Password (provided by overseer) 
+✔ After creation:
+•	Club becomes ACTIVE immediately 
+•	Club appears automatically in system like existing clubs 
+•	Admin can log in using assigned credentials  
+ 6. UI / UX Improvement
+✔ Improve full frontend design:
+•	Make UI modern, colorful, and attractive 
+•	Improve layout, spacing, and card design 
+•	Ensure full responsiveness (mobile + desktop) 
+✔ Design Guidelines:
+•	Use clean HTML/CSS or Tailwind CSS (if available) 
+•	Use attractive color combinations for: 
+o	Clubs section 
+o	Notices section 
+o	Gallery section 
+•	Make interface user-friendly and easy to navigate 
+________________________________________
+⚙️ Final Important Instructions:
+•	Keep all existing features unchanged and working 
+•	Maintain full authentication system 
+•	Ensure proper frontend–backend API integration 
+•	Fix all bugs without breaking current system 
+•	Maintain clean MERN Monorepo structure 
+•	Ensure project is fully runnable from root monorepo folder
+

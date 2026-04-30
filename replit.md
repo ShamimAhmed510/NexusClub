@@ -31,8 +31,15 @@ Currently hosts the **Metropolitan University Club Management System** — a ful
 - Multi-role auth (Student / Faculty / Club Admin / System Overseer); seeded overseer is `admin / admin123`.
 - 13 pre-seeded MU clubs (no user-created clubs): MU Islamic Society, MU CSE Society, MU Sports Club, MU Research Society, MU Hult Prize, MU Cultural Club, MU MUN, MU Cycling Association, MU Photographic Society, MU Robotics Club, SWE Innovators Forum, MU Debating Club, MUGAS.
 - Club detail pages: Overview, Members (with leadership roles), Events (RSVP), Posts, Notices, Achievements, Gallery.
-- Join/approve flow, event creation + overseer approval, university + club notices, presigned-URL image uploads via App Storage.
+- Join/approve flow: admin sees full member details (name, email, student ID, department).
+- Event creation + overseer approval, university + club notices (club admins can publish to their own club).
+- Presigned-URL image uploads via Replit App Storage (GCS-backed, `PRIVATE_OBJECT_DIR` set).
+- Overseer can create new clubs with an optional admin account assigned at creation time.
 - Role-aware dashboard (`/dashboard`).
+
+## Important Notes (api-zod)
+
+`lib/api-zod/src/index.ts` is **manually managed** — do NOT restore `export * from "./generated/types"`. The Zod codegen generates both `generated/api.ts` (Zod schemas) and `generated/types/` (TypeScript interfaces) with the same export names for request bodies, causing TypeScript ambiguity errors. The `index.ts` selectively re-exports only enum const objects from `generated/types/` that aren't duplicated in `api.ts`.
 
 ## Key Commands
 

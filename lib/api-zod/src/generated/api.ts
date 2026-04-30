@@ -90,6 +90,20 @@ export const ListClubsResponseItem = zod.object({
 export const ListClubsResponse = zod.array(ListClubsResponseItem);
 
 /**
+ * @summary Create a new club (overseer only)
+ */
+export const CreateClubBody = zod.object({
+  name: zod.string(),
+  category: zod.string().optional(),
+  shortDescription: zod.string().optional(),
+  description: zod.string().optional(),
+  accentColor: zod.string().optional(),
+  adminUsername: zod.string().optional(),
+  adminPassword: zod.string().optional(),
+  adminFullName: zod.string().optional(),
+});
+
+/**
  * @summary Get a club by slug
  */
 export const GetClubParams = zod.object({
@@ -322,6 +336,8 @@ export const ListJoinRequestsResponseItem = zod.object({
   clubName: zod.string(),
   fullName: zod.string(),
   email: zod.string(),
+  studentId: zod.string().nullish(),
+  department: zod.string().nullish(),
   message: zod.string().nullish(),
   status: zod.enum(["pending", "approved", "rejected"]),
   createdAt: zod.coerce.date(),
@@ -347,6 +363,8 @@ export const DecideJoinRequestResponse = zod.object({
   clubName: zod.string(),
   fullName: zod.string(),
   email: zod.string(),
+  studentId: zod.string().nullish(),
+  department: zod.string().nullish(),
   message: zod.string().nullish(),
   status: zod.enum(["pending", "approved", "rejected"]),
   createdAt: zod.coerce.date(),
@@ -644,6 +662,8 @@ export const GetStudentDashboardResponse = zod.object({
       clubName: zod.string(),
       fullName: zod.string(),
       email: zod.string(),
+      studentId: zod.string().nullish(),
+      department: zod.string().nullish(),
       message: zod.string().nullish(),
       status: zod.enum(["pending", "approved", "rejected"]),
       createdAt: zod.coerce.date(),
@@ -729,6 +749,8 @@ export const GetClubAdminDashboardResponse = zod.object({
       clubName: zod.string(),
       fullName: zod.string(),
       email: zod.string(),
+      studentId: zod.string().nullish(),
+      department: zod.string().nullish(),
       message: zod.string().nullish(),
       status: zod.enum(["pending", "approved", "rejected"]),
       createdAt: zod.coerce.date(),
@@ -860,6 +882,8 @@ export const GetOverseerDashboardResponse = zod.object({
       clubName: zod.string(),
       fullName: zod.string(),
       email: zod.string(),
+      studentId: zod.string().nullish(),
+      department: zod.string().nullish(),
       message: zod.string().nullish(),
       status: zod.enum(["pending", "approved", "rejected"]),
       createdAt: zod.coerce.date(),

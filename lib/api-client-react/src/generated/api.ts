@@ -23,6 +23,7 @@ import type {
   Club,
   ClubAdminDashboard,
   ClubDetail,
+  CreateClubBody,
   CreateEventBody,
   CreateNoticeBody,
   CreatePostBody,
@@ -527,6 +528,92 @@ export function useListClubs<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Create a new club (overseer only)
+ */
+export const getCreateClubUrl = () => {
+  return `/api/clubs`;
+};
+
+export const createClub = async (
+  createClubBody: CreateClubBody,
+  options?: RequestInit,
+): Promise<Club> => {
+  return customFetch<Club>(getCreateClubUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createClubBody),
+  });
+};
+
+export const getCreateClubMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createClub>>,
+    TError,
+    { data: BodyType<CreateClubBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createClub>>,
+  TError,
+  { data: BodyType<CreateClubBody> },
+  TContext
+> => {
+  const mutationKey = ["createClub"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createClub>>,
+    { data: BodyType<CreateClubBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createClub(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateClubMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createClub>>
+>;
+export type CreateClubMutationBody = BodyType<CreateClubBody>;
+export type CreateClubMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a new club (overseer only)
+ */
+export const useCreateClub = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createClub>>,
+    TError,
+    { data: BodyType<CreateClubBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createClub>>,
+  TError,
+  { data: BodyType<CreateClubBody> },
+  TContext
+> => {
+  return useMutation(getCreateClubMutationOptions(options));
+};
 
 /**
  * @summary Get a club by slug

@@ -16,6 +16,10 @@ export interface JoinRequest {
   fullName: string;
   email: string;
   /** @nullable */
+  studentId?: string | null;
+  /** @nullable */
+  department?: string | null;
+  /** @nullable */
   message?: string | null;
   status: JoinRequestStatus;
   createdAt: Date;

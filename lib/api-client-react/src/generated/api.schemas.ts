@@ -102,6 +102,17 @@ export interface UpdateClubBody {
   instagramUrl?: string;
 }
 
+export interface CreateClubBody {
+  name: string;
+  category?: string;
+  shortDescription?: string;
+  description?: string;
+  accentColor?: string;
+  adminUsername?: string;
+  adminPassword?: string;
+  adminFullName?: string;
+}
+
 export type MemberRole = (typeof MemberRole)[keyof typeof MemberRole];
 
 export const MemberRole = {
@@ -261,6 +272,10 @@ export interface JoinRequest {
   clubName: string;
   fullName: string;
   email: string;
+  /** @nullable */
+  studentId?: string | null;
+  /** @nullable */
+  department?: string | null;
   /** @nullable */
   message?: string | null;
   status: JoinRequestStatus;

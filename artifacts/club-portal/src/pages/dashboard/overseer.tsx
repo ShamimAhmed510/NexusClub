@@ -6,6 +6,7 @@ import {
   useAssignClubAdmin, 
   useApproveEvent, 
   useCreateNotice,
+  useCreateClub,
   useListClubs,
   UpdateUserRoleBodyRole,
   AssignClubAdminBodyRole,
@@ -25,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetOverseerDashboardQueryKey, getListUsersQueryKey, getListEventsQueryKey } from "@workspace/api-client-react";
-import { UsersIcon, CheckCircleIcon, CalendarIcon, BellIcon, ShieldIcon, BuildingIcon, XCircleIcon, PlusIcon } from "lucide-react";
+import { UsersIcon, CheckCircleIcon, CalendarIcon, BellIcon, ShieldIcon, BuildingIcon, XCircleIcon, PlusIcon, FolderPlusIcon } from "lucide-react";
 import { format } from "date-fns";
 
 export default function OverseerDashboard() {
@@ -37,6 +38,7 @@ export default function OverseerDashboard() {
   const { mutate: assignClubAdmin } = useAssignClubAdmin();
   const { mutate: approveEvent } = useApproveEvent();
   const { mutate: createNotice } = useCreateNotice();
+  const { mutate: createClub, isPending: isCreatingClub } = useCreateClub();
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -50,6 +52,12 @@ export default function OverseerDashboard() {
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [selectedClub, setSelectedClub] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<AssignClubAdminBodyRole>(AssignClubAdminBodyRole.president);
+
+  const [createClubDialogOpen, setCreateClubDialogOpen] = useState(false);
+  const [clubForm, setClubForm] = useState({
+    name: "", category: "", shortDescription: "",
+    adminUsername: "", adminPassword: "", adminFullName: ""
+  });
 
   if (isLoading || !dashboard) {
     return (
@@ -115,6 +123,30 @@ export default function OverseerDashboard() {
     });
   };
 
+  const handleCreateClub = () => {
+    if (!clubForm.name) return;
+    createClub({
+      data: {
+        name: clubForm.name,
+        category: clubForm.category || undefined,
+        shortDescription: clubForm.shortDescription || undefined,
+        adminUsername: clubForm.adminUsername || undefined,
+        adminPassword: clubForm.adminPassword || undefined,
+        adminFullName: clubForm.adminFullName || undefined,
+      }
+    }, {
+      onSuccess: (club) => {
+        toast({ title: `Club "${club.name}" created successfully` });
+        setCreateClubDialogOpen(false);
+        setClubForm({ name: "", category: "", shortDescription: "", adminUsername: "", adminPassword: "", adminFullName: "" });
+        queryClient.invalidateQueries({ queryKey: getGetOverseerDashboardQueryKey() });
+      },
+      onError: () => {
+        toast({ title: "Failed to create club", variant: "destructive" });
+      }
+    });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -122,6 +154,55 @@ export default function OverseerDashboard() {
           <h1 className="text-3xl font-serif font-bold tracking-tight">System Overseer</h1>
           <p className="text-muted-foreground">Manage clubs, events, users, and university notices.</p>
         </div>
+        <div className="flex gap-2 flex-wrap">
+        <Dialog open={createClubDialogOpen} onOpenChange={setCreateClubDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"><FolderPlusIcon className="h-4 w-4 mr-2" /> Create Club</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Create New Club</DialogTitle>
+              <DialogDescription>Create a club and optionally assign an admin account.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label>Club Name <span className="text-red-500">*</span></Label>
+                <Input value={clubForm.name} onChange={e => setClubForm(f => ({...f, name: e.target.value}))} placeholder="e.g. Robotics Club" />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Input value={clubForm.category} onChange={e => setClubForm(f => ({...f, category: e.target.value}))} placeholder="e.g. Technology, Arts, Sports" />
+              </div>
+              <div className="space-y-2">
+                <Label>Short Description</Label>
+                <Input value={clubForm.shortDescription} onChange={e => setClubForm(f => ({...f, shortDescription: e.target.value}))} placeholder="One-line description" />
+              </div>
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-muted-foreground mb-3">Admin Account (optional)</p>
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Admin Full Name</Label>
+                    <Input value={clubForm.adminFullName} onChange={e => setClubForm(f => ({...f, adminFullName: e.target.value}))} placeholder="Full name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Admin Username</Label>
+                    <Input value={clubForm.adminUsername} onChange={e => setClubForm(f => ({...f, adminUsername: e.target.value}))} placeholder="username" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Admin Password</Label>
+                    <Input type="password" value={clubForm.adminPassword} onChange={e => setClubForm(f => ({...f, adminPassword: e.target.value}))} placeholder="password" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateClubDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateClub} disabled={!clubForm.name || isCreatingClub}>
+                {isCreatingClub ? "Creating..." : "Create Club"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Dialog open={noticeDialogOpen} onOpenChange={setNoticeDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary text-primary-foreground"><PlusIcon className="h-4 w-4 mr-2" /> New University Notice</Button>
@@ -157,6 +238,7 @@ export default function OverseerDashboard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

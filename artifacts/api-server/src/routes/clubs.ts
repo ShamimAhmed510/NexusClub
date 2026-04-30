@@ -12,6 +12,7 @@ import {
   mediaTable,
   usersTable,
 } from "@workspace/db";
+import bcrypt from "bcryptjs";
 import {
   UpdateClubBody,
   RequestJoinClubBody,
@@ -21,6 +22,7 @@ import {
   CreatePostBody,
   CreateNoticeBody,
   AddClubMediaBody,
+  CreateClubBody,
 } from "@workspace/api-zod";
 import {
   getCurrentUser,
@@ -92,6 +94,96 @@ async function listClubsWithCounts() {
 router.get("/clubs", async (_req: Request, res: Response) => {
   res.json(await listClubsWithCounts());
 });
+
+router.post(
+  "/clubs",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const user = await getCurrentUser(req);
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    if (user.role !== "overseer") {
+      res.status(403).json({ error: "Only overseer can create clubs" });
+      return;
+    }
+    const parsed = CreateClubBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
+      return;
+    }
+    const { name, category, shortDescription, description, accentColor, adminUsername, adminPassword, adminFullName } = parsed.data;
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 60);
+    const [existingClub] = await db
+      .select()
+      .from(clubsTable)
+      .where(eq(clubsTable.slug, slug))
+      .limit(1);
+    if (existingClub) {
+      res.status(409).json({ error: "A club with this name already exists" });
+      return;
+    }
+    const [created] = await db
+      .insert(clubsTable)
+      .values({
+        slug,
+        name,
+        category: category ?? "General",
+        shortDescription: shortDescription ?? "",
+        description: description ?? "",
+        accentColor: accentColor ?? "#6366f1",
+      })
+      .returning();
+    if (!created) {
+      res.status(500).json({ error: "Could not create club" });
+      return;
+    }
+    if (adminUsername && adminPassword) {
+      const [existingUser] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.username, adminUsername))
+        .limit(1);
+      let adminUserId: number;
+      if (existingUser) {
+        adminUserId = existingUser.id;
+      } else {
+        const passwordHash = await bcrypt.hash(adminPassword, 10);
+        const email = `${adminUsername}@mu.edu`;
+        const [newUser] = await db
+          .insert(usersTable)
+          .values({
+            username: adminUsername,
+            passwordHash,
+            fullName: adminFullName ?? adminUsername,
+            email,
+            role: "club_admin",
+          })
+          .returning();
+        if (!newUser) {
+          res.status(500).json({ error: "Could not create admin user" });
+          return;
+        }
+        adminUserId = newUser.id;
+      }
+      await db.insert(membershipsTable).values({
+        userId: adminUserId,
+        clubId: created.id,
+        role: "president",
+      }).onConflictDoNothing();
+    }
+    const clubs = await listClubsWithCounts();
+    const club = clubs.find((c) => c.id === created.id) ?? { ...created, memberCount: 0, eventCount: 0 };
+    res.status(201).json(serializeClub(club));
+  },
+);
 
 router.get("/clubs/:slug", async (req: Request, res: Response) => {
   const slug = String(req.params.slug);
@@ -493,6 +585,8 @@ router.get(
           clubName: club.name,
           fullName: row.u.fullName,
           email: row.u.email,
+          studentId: row.u.studentId,
+          department: row.u.department,
         }),
       ),
     );

@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
-import { db, noticesTable, clubsTable } from "@workspace/db";
+import { db, noticesTable, clubsTable, membershipsTable } from "@workspace/db";
 import { CreateNoticeBody } from "@workspace/api-zod";
 import { getCurrentUser, requireAuth } from "../lib/auth";
 import { serializeNotice } from "../lib/serializers";
@@ -49,10 +49,6 @@ router.post(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    if (user.role !== "overseer") {
-      res.status(403).json({ error: "Only overseer can create notices here" });
-      return;
-    }
     const publishAt = parsed.data.publishAt
       ? new Date(parsed.data.publishAt)
       : new Date();
@@ -71,6 +67,26 @@ router.post(
         return;
       }
       clubId = c.id;
+      if (user.role !== "overseer") {
+        const [membership] = await db
+          .select()
+          .from(membershipsTable)
+          .where(
+            and(
+              eq(membershipsTable.userId, user.id),
+              eq(membershipsTable.clubId, c.id),
+            ),
+          )
+          .limit(1);
+        const adminRoles = ["president", "vice_president", "secretary"];
+        if (!membership || !adminRoles.includes(membership.role)) {
+          res.status(403).json({ error: "Only club admins can publish notices for this club" });
+          return;
+        }
+      }
+    } else if (user.role !== "overseer") {
+      res.status(403).json({ error: "Only overseer can create university-wide notices" });
+      return;
     }
     const [created] = await db
       .insert(noticesTable)

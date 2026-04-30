@@ -1,0 +1,109 @@
+You are a senior full-stack MERN developer.
+Update the existing “Metropolitan University Club Management System” project with the following enhancements.
+
+⚠️ IMPORTANT:
+
+Do NOT change existing core features
+Keep all previous functionality intact
+Only ADD and IMPROVE the features mentioned below
+🔐 CLUB-WISE ADMIN SYSTEM (VERY IMPORTANT)
+Each predefined club must have its own separate admin account
+Each admin must have:
+unique username
+unique password
+These admin accounts must be automatically created during seeding
+
+👉 Example:
+
+MU CSE Society → cse_admin / password
+MU Sports Club → sports_admin / password
+(Use meaningful naming for each club)
+🧑‍🤝‍🧑 JOIN REQUEST FLOW (CLUB-SPECIFIC)
+When a student sends a join request, it must go ONLY to that specific club’s admin
+Not global admin, not all admins
+
+Flow:
+
+Student → clicks “Join Club”
+Request status = Pending
+Only that club’s admin can:
+Approve
+Reject
+✅ MEMBERSHIP RESULT (USER SIDE)
+After approval:
+Student can see:
+Which clubs they joined
+Their role (Member)
+Add a “My Clubs” section in Student Dashboard
+🛠️ CLUB ADMIN DASHBOARD UPDATE
+
+Each club admin can ONLY:
+
+View join requests for their own club
+Approve/reject members
+Manage:
+club posts
+events
+gallery
+
+❌ Cannot access other clubs
+
+👑 SYSTEM OVERSEER UPDATE
+Keep existing System Overseer (admin / admin123)
+ADD another super admin account (for backup/testing)
+
+👉 System Overseer can:
+
+See all clubs
+Assign/change club admins
+Full system control
+🎨 UI/UX IMPROVEMENT (MAKE IT COLORFUL)
+
+Enhance frontend design:
+
+Use more colorful modern UI
+Add:
+gradient backgrounds
+hover effects
+card animations
+better spacing and typography
+Improve:
+dashboard UI
+club cards
+buttons
+Keep it professional but visually attractive
+🗄️ DATABASE UPDATE
+Update User schema:
+role (student / club_admin / overseer)
+clubId (for club admins)
+Update JoinRequest:
+must include clubId
+must be filtered by club
+🌱 SEEDING UPDATE
+
+During initial seed:
+
+Insert all 13 predefined clubs (same as before)
+Create:
+One admin per club
+System Overseer (existing)
+Additional System Overseer
+
+👉 Prevent duplicate seeding
+
+⚙️ MONGODB CONNECTION (AUTO)
+Use the provided MongoDB connection string from .env
+Ensure:
+DB auto connects on server start
+No manual setup required
+Works instantly after deployment
+🚀 FINAL REQUIREMENT
+
+The system must work like this:
+
+✔ Each club has its own admin
+✔ Join requests go to correct admin
+✔ Students see their joined clubs
+✔ UI looks modern and colorful
+✔ MongoDB auto connects using given URI
+✔ Everything works without extra setup

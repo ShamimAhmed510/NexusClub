@@ -20,25 +20,33 @@ export default function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative py-20 md:py-32 overflow-hidden bg-primary text-primary-foreground">
+      <section className="relative py-20 md:py-36 overflow-hidden text-white" style={{background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 35%, #4c1d95 65%, #1d4ed8 100%)'}}>
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/90 to-primary/40"></div>
+        <div className="absolute inset-0" style={{background: 'radial-gradient(ellipse at 70% 50%, rgba(139,92,246,0.25) 0%, transparent 60%), radial-gradient(ellipse at 20% 80%, rgba(59,130,246,0.2) 0%, transparent 50%)'}}></div>
+        <div className="absolute top-20 right-20 w-72 h-72 rounded-full opacity-10 blur-3xl" style={{background: 'radial-gradient(circle, #a78bfa, transparent)'}}></div>
+        <div className="absolute bottom-10 left-10 w-48 h-48 rounded-full opacity-10 blur-2xl" style={{background: 'radial-gradient(circle, #60a5fa, transparent)'}}></div>
         <div className="container relative mx-auto px-4 z-10">
           <div className="max-w-3xl space-y-6">
-            <h1 className="text-5xl md:text-7xl font-serif font-bold tracking-tight leading-tight">
-              Discover your community at MU
+            <div className="animate-slide-right">
+              <span className="inline-block px-4 py-1.5 rounded-full text-sm font-medium mb-4 border border-white/20" style={{background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)'}}>
+                Metropolitan University Portal
+              </span>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-serif font-bold tracking-tight leading-tight animate-fade-up">
+              Discover your <br />
+              <span style={{background: 'linear-gradient(90deg, #a78bfa, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>community</span> at MU
             </h1>
-            <p className="text-xl md:text-2xl text-primary-foreground/80 font-light leading-relaxed">
+            <p className="text-xl md:text-2xl text-white/75 font-light leading-relaxed animate-fade-up animate-delay-100">
               Explore official university clubs, join exciting events, and connect with students who share your passions.
             </p>
-            <div className="flex flex-wrap gap-4 pt-4">
+            <div className="flex flex-wrap gap-4 pt-4 animate-fade-up animate-delay-200">
               <Link href="/clubs">
-                <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-lg h-14 px-8">
+                <Button size="lg" className="text-lg h-14 px-8 shadow-lg shadow-violet-500/30" style={{background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', border: 'none', color: 'white'}}>
                   Browse Clubs
                 </Button>
               </Link>
               <Link href="/events">
-                <Button size="lg" variant="outline" className="bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 text-lg h-14 px-8">
+                <Button size="lg" variant="outline" className="bg-transparent border-white/30 text-white hover:bg-white/10 text-lg h-14 px-8">
                   View Events
                 </Button>
               </Link>
@@ -52,7 +60,8 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-end mb-10">
             <div>
-              <h2 className="text-3xl font-serif font-bold tracking-tight text-foreground mb-2">Featured Societies</h2>
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest mb-3" style={{background: 'linear-gradient(135deg, #ede9fe, #dbeafe)', color: '#4f46e5'}}>Student Life</span>
+              <h2 className="text-3xl font-serif font-bold tracking-tight mb-2 gradient-text">Featured Societies</h2>
               <p className="text-muted-foreground">Find where you belong from our vibrant student communities.</p>
             </div>
             <Link href="/clubs" className="hidden md:flex items-center text-primary font-medium hover:underline">

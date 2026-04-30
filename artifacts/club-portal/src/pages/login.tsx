@@ -44,7 +44,7 @@ export default function Login() {
 
   return (
     <Layout>
-      <div className="flex-1 flex items-center justify-center py-12 px-4 bg-muted/30">
+      <div className="flex-1 flex items-center justify-center py-12 px-4" style={{background: 'linear-gradient(135deg, #ede9fe 0%, #dbeafe 50%, #ede9fe 100%)'}}>
         <Card className="w-full max-w-md shadow-xl border-border/50">
           <CardHeader className="space-y-2 text-center">
             <CardTitle className="text-3xl font-serif">Welcome Back</CardTitle>
@@ -100,11 +100,6 @@ export default function Login() {
               <Link href="/register" className="text-primary hover:underline font-medium">
                 Register here
               </Link>
-            </div>
-            
-            <div className="w-full p-4 rounded-lg bg-primary/5 border border-primary/10 text-sm text-center">
-              <p className="font-medium text-primary mb-1">Demo Access</p>
-              <p className="text-muted-foreground">System Overseer: <strong>admin</strong> / <strong>admin123</strong></p>
             </div>
           </CardFooter>
         </Card>

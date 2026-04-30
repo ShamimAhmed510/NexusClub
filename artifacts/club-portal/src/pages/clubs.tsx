@@ -26,20 +26,25 @@ export default function Clubs() {
 
   return (
     <Layout>
-      <div className="bg-muted/30 py-12 border-b border-border/50">
-        <div className="container mx-auto px-4">
+      <div className="py-14 border-b border-border/50 text-white relative overflow-hidden" style={{background: 'linear-gradient(135deg, #1e1b4b 0%, #4c1d95 45%, #1d4ed8 100%)'}}>
+        <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center"></div>
+        <div className="absolute inset-0" style={{background: 'radial-gradient(ellipse at 80% 50%, rgba(139,92,246,0.3) 0%, transparent 60%)'}}></div>
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-2xl">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest mb-4 border border-white/20" style={{background: 'rgba(255,255,255,0.1)'}}>
+              All Societies
+            </span>
             <h1 className="text-4xl font-serif font-bold tracking-tight mb-4">Clubs & Societies</h1>
-            <p className="text-lg text-muted-foreground mb-8">
+            <p className="text-lg text-white/75 mb-8">
               Discover and join student-led organizations. From academics to arts, find your community at MU.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
                 <Input 
                   placeholder="Search clubs..." 
-                  className="pl-10 h-12 text-base bg-background"
+                  className="pl-10 h-12 text-base bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/15"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -49,8 +54,8 @@ export default function Clubs() {
             {!isLoading && categories.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-6">
                 <Badge 
-                  variant={selectedCategory === null ? "default" : "secondary"}
-                  className="cursor-pointer hover:bg-primary/90 hover:text-primary-foreground text-sm py-1"
+                  variant="outline"
+                  className={`cursor-pointer text-sm py-1 border-white/30 transition-colors ${selectedCategory === null ? "bg-white text-indigo-800 border-white" : "bg-white/10 text-white hover:bg-white/20"}`}
                   onClick={() => setSelectedCategory(null)}
                 >
                   All Categories
@@ -58,8 +63,8 @@ export default function Clubs() {
                 {categories.map(cat => (
                   <Badge 
                     key={cat}
-                    variant={selectedCategory === cat ? "default" : "secondary"}
-                    className="cursor-pointer hover:bg-primary/90 hover:text-primary-foreground text-sm py-1"
+                    variant="outline"
+                    className={`cursor-pointer text-sm py-1 border-white/30 transition-colors ${selectedCategory === cat ? "bg-white text-indigo-800 border-white" : "bg-white/10 text-white hover:bg-white/20"}`}
                     onClick={() => setSelectedCategory(cat)}
                   >
                     {cat}
@@ -81,7 +86,7 @@ export default function Clubs() {
             {filteredClubs.map((club, i) => (
               <Link key={club.id} href={`/clubs/${club.slug}`}>
                 <Card 
-                  className="h-full group hover:shadow-xl transition-all duration-500 border-border/50 hover:border-primary/20 cursor-pointer overflow-hidden flex flex-col"
+                  className="h-full group hover:shadow-xl transition-all duration-500 border-border/50 hover:border-primary/20 cursor-pointer overflow-hidden flex flex-col card-hover"
                   style={{ animationDelay: `${i * 50}ms` }}
                 >
                   <div 

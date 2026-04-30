@@ -32,7 +32,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center space-x-2">
-              <span className="font-serif font-bold text-xl tracking-tight text-primary">MU Portal</span>
+              <span className="font-serif font-bold text-xl tracking-tight" style={{background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>MU Portal</span>
             </Link>
             
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium">

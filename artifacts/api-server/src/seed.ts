@@ -190,6 +190,30 @@ async function main() {
     console.log("[seed] overseer admin already exists");
   }
 
+  // 1b. Second overseer (Deputy Overseer)
+  const overseer2Username = "overseer2";
+  const [existingOverseer2] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.username, overseer2Username))
+    .limit(1);
+  if (!existingOverseer2) {
+    const passwordHash = await bcrypt.hash("Overseer2@MU", 10);
+    await db
+      .insert(usersTable)
+      .values({
+        username: overseer2Username,
+        passwordHash,
+        fullName: "Deputy Overseer",
+        email: "overseer2@metrouni.edu.bd",
+        role: "overseer",
+        department: "Office of the Registrar",
+      });
+    console.log("[seed] second overseer created");
+  } else {
+    console.log("[seed] second overseer already exists");
+  }
+
   // 2. 13 Clubs
   for (const c of CLUBS) {
     const [existing] = await db
@@ -213,6 +237,49 @@ async function main() {
   }
   const allClubs = await db.select().from(clubsTable);
   console.log(`[seed] ${allClubs.length} clubs in db`);
+
+  // 2b. One dedicated club admin per club
+  const CLUB_ADMINS = [
+    { slug: "mu-islamic-society",     username: "admin_muislamic",  password: "MuIslamic@2025",  fullName: "Islamic Society Admin",        email: "admin.islamic@metrouni.edu.bd" },
+    { slug: "mu-cse-society",         username: "admin_mucse",       password: "MuCSE@2025",      fullName: "CSE Society Admin",            email: "admin.cse@metrouni.edu.bd" },
+    { slug: "mu-sports-club",         username: "admin_musports",    password: "MuSports@2025",   fullName: "Sports Club Admin",            email: "admin.sports@metrouni.edu.bd" },
+    { slug: "mu-research-society",    username: "admin_muresearch",  password: "MuResearch@2025", fullName: "Research Society Admin",       email: "admin.research@metrouni.edu.bd" },
+    { slug: "mu-hult-prize",          username: "admin_muhult",      password: "MuHult@2025",     fullName: "Hult Prize Admin",             email: "admin.hult@metrouni.edu.bd" },
+    { slug: "mu-cultural-club",       username: "admin_mucultural",  password: "MuCultural@2025", fullName: "Cultural Club Admin",          email: "admin.cultural@metrouni.edu.bd" },
+    { slug: "mu-mun",                 username: "admin_mumun",       password: "MuMUN@2025",      fullName: "MUN Admin",                    email: "admin.mun@metrouni.edu.bd" },
+    { slug: "mu-cycling-association", username: "admin_mucycling",   password: "MuCycling@2025",  fullName: "Cycling Association Admin",    email: "admin.cycling@metrouni.edu.bd" },
+    { slug: "mu-photographic-society",username: "admin_muphoto",     password: "MuPhoto@2025",    fullName: "Photographic Society Admin",   email: "admin.photo@metrouni.edu.bd" },
+    { slug: "mu-robotics-club",       username: "admin_murobotics",  password: "MuRobotics@2025", fullName: "Robotics Club Admin",          email: "admin.robotics@metrouni.edu.bd" },
+    { slug: "swe-innovators-forum",   username: "admin_sweforum",    password: "SweForum@2025",   fullName: "SWE Innovators Admin",         email: "admin.swe@metrouni.edu.bd" },
+    { slug: "mu-debating-club",       username: "admin_mudebating",  password: "MuDebating@2025", fullName: "Debating Club Admin",          email: "admin.debating@metrouni.edu.bd" },
+    { slug: "mugas",                  username: "admin_mugas",       password: "MuGAS@2025",      fullName: "MUGAS Admin",                  email: "admin.mugas@metrouni.edu.bd" },
+  ];
+  const clubAdminIdBySlug = new Map<string, number>();
+  for (const ca of CLUB_ADMINS) {
+    const [existing] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.username, ca.username))
+      .limit(1);
+    if (existing) {
+      clubAdminIdBySlug.set(ca.slug, existing.id);
+      continue;
+    }
+    const passwordHash = await bcrypt.hash(ca.password, 10);
+    const [created] = await db
+      .insert(usersTable)
+      .values({
+        username: ca.username,
+        passwordHash,
+        fullName: ca.fullName,
+        email: ca.email,
+        role: "club_admin",
+        department: "Club Administration",
+      })
+      .returning();
+    if (created) clubAdminIdBySlug.set(ca.slug, created.id);
+  }
+  console.log(`[seed] ${clubAdminIdBySlug.size} club admin accounts tracked`);
 
   // 3. Demo students + faculty + a club admin
   const demoUsers = [
@@ -358,6 +425,24 @@ async function main() {
         .values({ userId, clubId, role: m.role });
     }
   }
+
+  // 4b. Per-club admin memberships (president of their club)
+  for (const [slug, userId] of clubAdminIdBySlug) {
+    const clubId = clubIdBySlug(slug);
+    const [existing] = await db
+      .select()
+      .from(membershipsTable)
+      .where(
+        sql`${membershipsTable.userId} = ${userId} AND ${membershipsTable.clubId} = ${clubId}`,
+      )
+      .limit(1);
+    if (!existing) {
+      await db
+        .insert(membershipsTable)
+        .values({ userId, clubId, role: "president" });
+    }
+  }
+  console.log("[seed] club admin memberships ensured");
 
   // 5. A few pending join requests for the dashboards
   const pendingJoins = [

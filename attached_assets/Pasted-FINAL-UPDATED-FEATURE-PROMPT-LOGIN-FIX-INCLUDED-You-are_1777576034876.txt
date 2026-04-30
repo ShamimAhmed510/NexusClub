@@ -1,0 +1,100 @@
+FINAL UPDATED FEATURE PROMPT (LOGIN FIX INCLUDED)
+
+You are a senior full-stack MERN developer.
+Update the existing “Metropolitan University Club Management System” project with the following enhancements.
+
+⚠️ IMPORTANT:
+
+Do NOT change existing core features
+Keep all previous functionality intact
+Only ADD and IMPROVE the features mentioned below
+🔐 CLUB-WISE ADMIN SYSTEM (VERY IMPORTANT)
+Each predefined club must have its own separate admin account
+Each admin must have:
+unique username
+unique password
+These admin accounts must be automatically created during seeding
+🧑‍🤝‍🧑 JOIN REQUEST FLOW (CLUB-SPECIFIC)
+When a student sends a join request, it must go ONLY to that specific club’s admin
+
+Flow:
+
+Student clicks “Join Club”
+Request status = Pending
+Only that club’s admin can:
+Approve
+Reject
+✅ MEMBERSHIP RESULT (USER SIDE)
+After approval:
+Student can see:
+Which clubs they joined
+Their role (Member)
+Add a “My Clubs” section in Student Dashboard
+🛠️ CLUB ADMIN DASHBOARD UPDATE
+
+Each club admin can ONLY:
+
+View join requests for their own club
+Approve/reject members
+Manage:
+posts
+events
+media
+
+❌ Cannot access other clubs
+
+👑 SYSTEM OVERSEER UPDATE
+Keep existing System Overseer (admin / admin123)
+ADD another super admin account
+System Overseer can:
+Manage all clubs
+Assign/change club admins
+Full system control
+🎨 UI/UX IMPROVEMENT (COLORFUL DESIGN)
+Make UI more modern and colorful
+Add:
+gradient backgrounds
+hover effects
+smooth animations
+improved cards & dashboard
+Keep it professional and responsive
+🗄️ DATABASE UPDATE
+User schema must include:
+role (student / club_admin / overseer)
+clubId (for club admins)
+JoinRequest must include:
+clubId
+status (Pending / Approved / Rejected)
+🌱 SEEDING UPDATE
+Insert all predefined clubs (same as before)
+Create:
+One admin per club
+System Overseer (existing)
+Additional System Overseer
+Prevent duplicate seeding
+⚙️ MONGODB CONNECTION (AUTO)
+Use provided MongoDB connection string from .env
+Ensure:
+Auto connection on server start
+No manual setup needed
+Ready for deployment
+🔒 LOGIN PAGE FIX (VERY IMPORTANT)
+Remove any visible display of:
+admin username
+admin password
+
+❌ Do NOT show demo credentials in UI
+❌ Do NOT show login hints on screen
+
+✔ Credentials should remain hidden from users
+✔ Only developer (me) will use them manually
+
+🎯 FINAL GOAL
+
+✔ Each club has its own admin
+✔ Join requests go to correct admin
+✔ Students see joined clubs
+✔ UI is modern & colorful
+✔ MongoDB auto connects
+✔ Login page is clean (no credentials shown)
+✔ System is fully production-ready

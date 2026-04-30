@@ -4,6 +4,8 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+Currently hosts the **Metropolitan University Club Management System** — a full-stack web app for browsing the 13 official MU clubs, managing memberships, posting events/notices, and running role-based dashboards (Student, Faculty, Club Admin, System Overseer).
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
@@ -14,7 +16,23 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
+- **Auth**: bcryptjs + express-session + connect-pg-simple
+- **Frontend**: React + Vite + wouter + TanStack Query + shadcn/ui + Tailwind v4
 - **Build**: esbuild (CJS bundle)
+
+## Artifacts
+
+- `artifacts/api-server` — Express API at `/api`
+- `artifacts/club-portal` — Web app at `/`
+- `artifacts/mockup-sandbox` — Design sandbox at `/__mockup`
+
+## MU Club Portal — Key Features
+
+- Multi-role auth (Student / Faculty / Club Admin / System Overseer); seeded overseer is `admin / admin123`.
+- 13 pre-seeded MU clubs (no user-created clubs): MU Islamic Society, MU CSE Society, MU Sports Club, MU Research Society, MU Hult Prize, MU Cultural Club, MU MUN, MU Cycling Association, MU Photographic Society, MU Robotics Club, SWE Innovators Forum, MU Debating Club, MUGAS.
+- Club detail pages: Overview, Members (with leadership roles), Events (RSVP), Posts, Notices, Achievements, Gallery.
+- Join/approve flow, event creation + overseer approval, university + club notices, presigned-URL image uploads via App Storage.
+- Role-aware dashboard (`/dashboard`).
 
 ## Key Commands
 
@@ -23,5 +41,6 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
+- `pnpm --filter @workspace/api-server run seed` — re-seed users, clubs, members, events, posts, notices
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

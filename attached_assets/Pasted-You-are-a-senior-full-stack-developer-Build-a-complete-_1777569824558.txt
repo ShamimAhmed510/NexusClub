@@ -1,0 +1,258 @@
+You are a senior full-stack developer. Build a complete production-ready “Metropolitan University Club Management System” using:
+
+STACK:
+- MongoDB
+- Express.js
+- React.js
+- Node.js (MERN Stack)
+- HTML + CSS (must be used inside React components via JSX + Tailwind or custom CSS)
+- Tailwind CSS preferred for styling
+- Monorepo architecture
+- Vercel deployment ready
+
+========================
+PROJECT NAME
+========================
+Metropolitan University Club Management System
+
+========================
+IMPORTANT RULES
+========================
+- Must use MERN stack (MongoDB, Express, React, Node)
+- UI must be built using React + HTML structure + CSS (Tailwind or custom CSS)
+- Clean, modern UI/UX design required
+- Fully responsive (mobile + desktop)
+- Production-level code
+- Use environment variables for secrets
+- MongoDB connection must use .env (mongodb+srv://shamimahmedraju510_db_user:kkVrXxxreIVOIYOI@club0.zqdxfw0.mongodb.net/?appName=Club0)
+- Do NOT hardcode any secrets
+
+========================
+PREDEFINED CLUBS (NO USER CAN CREATE CLUBS)
+========================
+Seed these clubs automatically into MongoDB:
+
+1. MU Islamic Society  
+2. MU CSE Society  
+3. MU Sports Club  
+4. MU Research Society  
+5. MU Hult Prize  
+6. MU Cultural Club  
+7. MU Model United Nations  
+8. MU Cycling Association  
+9. MU Photographic Society  
+10. MU Robotics Club  
+11. SWE Innovators Forum  
+12. Metropolitan University Debating Club  
+13. MU Geography & Astronomical Society (MUGAS)
+
+👉 Only SYSTEM OVERSEER can create/manage clubs
+👉 All clubs must be seeded automatically on first run
+
+========================
+SYSTEM ROLES
+========================
+1. Student
+2. Club Admin
+3. Faculty
+4. SYSTEM OVERSEER (SUPER ADMIN)
+
+SYSTEM OVERSEER:
+- username: admin
+- password: admin123
+
+👉 Simple login for testing purpose
+
+========================
+ALL CLUBS PAGE
+========================
+Create a page that shows all clubs in a grid/card layout.
+
+Each club card:
+- Club name
+- Logo
+- Category
+- Short description
+
+Click → opens Club Details Page
+
+========================
+CLUB DETAILS PAGE (VERY IMPORTANT)
+========================
+Each club must have:
+
+1. Club Info Section
+- Name
+- Description
+- Logo
+- Social links
+
+2. Achievement Gallery
+- Image grid
+- Upload multiple images
+- Show achievements visually
+
+3. Members Section
+- President
+- Vice President
+- Secretary
+- Members list
+
+4. Posts / Notices
+- Club announcements
+- Image + text support
+
+5. Events Section
+- Upcoming events
+- Past events
+- RSVP system
+
+6. Media Gallery
+- All club images/videos
+- Filter by category (event/achievement)
+
+========================
+IMAGE UPLOAD SYSTEM
+========================
+- Must support image upload
+- Use Cloudinary OR local storage option
+- APIs:
+  /api/upload/single
+  /api/upload/multiple
+
+Used for:
+- club logo
+- gallery images
+- event images
+- post images
+
+========================
+MEMBERSHIP SYSTEM
+========================
+- Student can send join request
+- Club admin approves/rejects
+- Status: Pending / Approved / Rejected
+
+Roles inside club:
+- President
+- Vice President
+- Secretary
+- Member
+
+========================
+EVENT SYSTEM
+========================
+- Club admin creates event
+- Needs approval from admin/system
+- After approval → visible publicly
+
+Event fields:
+- title
+- description
+- date/time
+- venue
+- capacity
+- images
+
+========================
+NOTICE SYSTEM
+========================
+- Club notices
+- University-wide notices
+- Pinned notices
+- Scheduled publish
+- Auto-expire notices
+- Role-based visibility
+
+========================
+UNIVERSITY INFO PAGE
+========================
+Create pages for:
+- Metropolitan University overview
+- Campus images gallery
+- Department list (static display)
+- Faculty information UI
+
+========================
+DASHBOARD SYSTEM
+========================
+Student Dashboard:
+- joined clubs
+- join request status
+- upcoming events
+
+Club Admin Dashboard:
+- manage members
+- approve requests
+- create events
+- posts & notices
+
+SYSTEM OVERSEER Dashboard:
+- manage all clubs
+- assign admins
+- analytics
+- user management
+
+========================
+DATABASE DESIGN (MONGODB)
+========================
+Schemas:
+- Users
+- Clubs
+- Memberships
+- JoinRequests
+- Events
+- Notices
+- Posts
+- Media
+
+Connection:
+MONGO_URI will be provided in .env file
+
+========================
+SEEDING SYSTEM
+========================
+- Auto insert all predefined clubs
+- Auto create admin account
+- Prevent duplicate seeding
+
+========================
+UI / UX REQUIREMENTS
+========================
+- Use HTML structure inside React components
+- Use CSS (Tailwind preferred)
+- Modern university portal design
+- Clean cards, navbar, sidebar
+- Smooth navigation
+- Professional dashboard UI
+- Attractive color theme
+- Fully responsive design
+
+========================
+DEPLOYMENT
+========================
+- Frontend: Vercel
+- Backend: Vercel / Node hosting
+- Monorepo ready
+- Environment variables properly configured
+
+========================
+OUTPUT FORMAT
+========================
+1. Show full monorepo structure first
+2. Then backend setup step-by-step
+3. Then frontend setup
+4. Then database models
+5. Then APIs
+6. Then UI components (React + HTML + CSS)
+7. Then image upload system
+8. Then seeding script
+9. Then deployment guide
+
+IMPORTANT:
+- Must use MERN stack properly
+- Must include HTML + CSS inside React UI
+- No user-created clubs allowed
+- System Overseer only controls clubs
+- Code must be clean and production ready
+

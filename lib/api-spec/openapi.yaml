@@ -3,20 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Metropolitan University Club Management System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: clubs
+  - name: members
+  - name: events
+  - name: notices
+  - name: posts
+  - name: media
+  - name: dashboard
+  - name: storage
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +31,1101 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ---------- AUTH ----------
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new student/faculty account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "204":
+          description: Logged out
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get the current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+
+  # ---------- CLUBS ----------
+  /clubs:
+    get:
+      operationId: listClubs
+      tags: [clubs]
+      summary: List all clubs
+      responses:
+        "200":
+          description: List of clubs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Club"
+  /clubs/{slug}:
+    get:
+      operationId: getClub
+      tags: [clubs]
+      summary: Get a club by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Club details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateClub
+      tags: [clubs]
+      summary: Update a club (admin/overseer)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClubBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Club"
+
+  # ---------- MEMBERSHIPS ----------
+  /clubs/{slug}/members:
+    get:
+      operationId: listClubMembers
+      tags: [members]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+  /clubs/{slug}/join:
+    post:
+      operationId: requestJoinClub
+      tags: [members]
+      summary: Send join request
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinClubBody"
+      responses:
+        "201":
+          description: Join request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinRequest"
+  /clubs/{slug}/requests:
+    get:
+      operationId: listJoinRequests
+      tags: [members]
+      summary: List pending join requests for a club
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Join requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JoinRequest"
+  /join-requests/{id}/decision:
+    post:
+      operationId: decideJoinRequest
+      tags: [members]
+      summary: Approve or reject a join request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecisionBody"
+      responses:
+        "200":
+          description: Decision applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinRequest"
+  /memberships/{id}/role:
+    patch:
+      operationId: updateMemberRole
+      tags: [members]
+      summary: Update a member's role within a club
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoleBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+
+  # ---------- EVENTS ----------
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List approved upcoming and past events
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, upcoming, past, pending]
+      responses:
+        "200":
+          description: Events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+  /clubs/{slug}/events:
+    get:
+      operationId: listClubEvents
+      tags: [events]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      operationId: createEvent
+      tags: [events]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /events/{id}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetail"
+  /events/{id}/approve:
+    post:
+      operationId: approveEvent
+      tags: [events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /events/{id}/rsvp:
+    post:
+      operationId: rsvpEvent
+      tags: [events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: RSVP toggled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RsvpResult"
+
+  # ---------- POSTS ----------
+  /clubs/{slug}/posts:
+    get:
+      operationId: listClubPosts
+      tags: [posts]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+    post:
+      operationId: createPost
+      tags: [posts]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePostBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  # ---------- NOTICES ----------
+  /notices:
+    get:
+      operationId: listNotices
+      tags: [notices]
+      summary: University-wide and club notices
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, university, pinned]
+      responses:
+        "200":
+          description: Notices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notice"
+    post:
+      operationId: createNotice
+      tags: [notices]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNoticeBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notice"
+  /clubs/{slug}/notices:
+    get:
+      operationId: listClubNotices
+      tags: [notices]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Club notices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notice"
+
+  # ---------- MEDIA ----------
+  /clubs/{slug}/media:
+    get:
+      operationId: listClubMedia
+      tags: [media]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, event, achievement, gallery]
+      responses:
+        "200":
+          description: Media items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MediaItem"
+    post:
+      operationId: addClubMedia
+      tags: [media]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMediaBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaItem"
+
+  # ---------- DASHBOARD ----------
+  /dashboard/student:
+    get:
+      operationId: getStudentDashboard
+      tags: [dashboard]
+      summary: Joined clubs, pending requests, upcoming RSVPs
+      responses:
+        "200":
+          description: Student dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudentDashboard"
+  /dashboard/club-admin/{slug}:
+    get:
+      operationId: getClubAdminDashboard
+      tags: [dashboard]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Club admin dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubAdminDashboard"
+  /dashboard/overseer:
+    get:
+      operationId: getOverseerDashboard
+      tags: [dashboard]
+      summary: System-wide analytics for overseer
+      responses:
+        "200":
+          description: Overseer dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OverseerDashboard"
+  /users:
+    get:
+      operationId: listUsers
+      tags: [dashboard]
+      summary: List all users (overseer)
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+  /users/{id}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [dashboard]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRoleBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{id}/assign-club-admin:
+    post:
+      operationId: assignClubAdmin
+      tags: [dashboard]
+      summary: Assign a user as admin of a club (overseer)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignClubAdminBody"
+      responses:
+        "200":
+          description: Assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+
+  # ---------- STORAGE ----------
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned URL to upload a file directly to storage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlBody"
+      responses:
+        "200":
+          description: Presigned URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
+
 components:
   schemas:
     HealthStatus:
       type: object
       properties:
+        status: { type: string }
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+
+    # ---------- AUTH ----------
+    LoginBody:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+      required: [username, password]
+    RegisterBody:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string }
+        fullName: { type: string }
+        email: { type: string }
+        role:
+          type: string
+          enum: [student, faculty]
+        studentId:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+      required: [username, password, fullName, email, role]
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        fullName: { type: string }
+        email: { type: string }
+        role:
+          type: string
+          enum: [student, faculty, club_admin, overseer]
+        studentId:
+          type: ["string", "null"]
+        department:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+      required: [id, username, fullName, email, role, createdAt]
+    AuthSession:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        adminClubSlugs:
+          type: array
+          items: { type: string }
+      required: [user, adminClubSlugs]
+
+    # ---------- CLUBS ----------
+    Club:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        category: { type: string }
+        shortDescription: { type: string }
+        description: { type: string }
+        logoUrl:
+          type: ["string", "null"]
+        coverUrl:
+          type: ["string", "null"]
+        accentColor: { type: string }
+        websiteUrl:
+          type: ["string", "null"]
+        facebookUrl:
+          type: ["string", "null"]
+        instagramUrl:
+          type: ["string", "null"]
+        memberCount: { type: integer }
+        eventCount: { type: integer }
+      required: [id, slug, name, category, shortDescription, description, accentColor, memberCount, eventCount]
+    UpdateClubBody:
+      type: object
+      properties:
+        name: { type: string }
+        category: { type: string }
+        shortDescription: { type: string }
+        description: { type: string }
+        logoUrl: { type: string }
+        coverUrl: { type: string }
+        accentColor: { type: string }
+        websiteUrl: { type: string }
+        facebookUrl: { type: string }
+        instagramUrl: { type: string }
+    ClubDetail:
+      type: object
+      properties:
+        club:
+          $ref: "#/components/schemas/Club"
+        leadership:
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
+        upcomingEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        pastEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        notices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
+        achievements:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaItem"
+        gallery:
+          type: array
+          items:
+            $ref: "#/components/schemas/MediaItem"
+        viewerMembership:
+          oneOf:
+            - $ref: "#/components/schemas/ViewerMembership"
+            - type: "null"
+      required: [club, leadership, members, upcomingEvents, pastEvents, posts, notices, achievements, gallery]
+    ViewerMembership:
+      type: object
+      properties:
         status:
           type: string
-      required:
-        - status
+          enum: [none, pending, approved, rejected]
+        role:
+          type: ["string", "null"]
+        membershipId:
+          type: ["integer", "null"]
+        requestId:
+          type: ["integer", "null"]
+      required: [status]
 
+    # ---------- MEMBERS ----------
+    Member:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        clubId: { type: integer }
+        clubSlug: { type: string }
+        clubName: { type: string }
+        fullName: { type: string }
+        email: { type: string }
+        avatarUrl:
+          type: ["string", "null"]
+        role:
+          type: string
+          enum: [president, vice_president, secretary, member]
+        joinedAt: { type: string, format: date-time }
+      required: [id, userId, clubId, clubSlug, clubName, fullName, email, role, joinedAt]
+    JoinRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        clubId: { type: integer }
+        clubSlug: { type: string }
+        clubName: { type: string }
+        fullName: { type: string }
+        email: { type: string }
+        message:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        createdAt: { type: string, format: date-time }
+      required: [id, userId, clubId, clubSlug, clubName, fullName, email, status, createdAt]
+    JoinClubBody:
+      type: object
+      properties:
+        message:
+          type: ["string", "null"]
+    DecisionBody:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+      required: [decision]
+    UpdateRoleBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [president, vice_president, secretary, member]
+      required: [role]
+    UpdateUserRoleBody:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [student, faculty, club_admin, overseer]
+      required: [role]
+    AssignClubAdminBody:
+      type: object
+      properties:
+        clubSlug: { type: string }
+        role:
+          type: string
+          enum: [president, vice_president, secretary, member]
+      required: [clubSlug, role]
+
+    # ---------- EVENTS ----------
+    Event:
+      type: object
+      properties:
+        id: { type: integer }
+        clubId: { type: integer }
+        clubSlug: { type: string }
+        clubName: { type: string }
+        title: { type: string }
+        description: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt:
+          oneOf:
+            - { type: string, format: date-time }
+            - type: "null"
+        venue: { type: string }
+        capacity:
+          type: ["integer", "null"]
+        coverUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        rsvpCount: { type: integer }
+        viewerHasRsvp: { type: boolean }
+      required: [id, clubId, clubSlug, clubName, title, description, startsAt, venue, status, rsvpCount, viewerHasRsvp]
+    EventDetail:
+      type: object
+      properties:
+        event:
+          $ref: "#/components/schemas/Event"
+        attendees:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+      required: [event, attendees]
+    CreateEventBody:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt:
+          type: ["string", "null"]
+          format: date-time
+        venue: { type: string }
+        capacity:
+          type: ["integer", "null"]
+        coverUrl:
+          type: ["string", "null"]
+      required: [title, description, startsAt, venue]
+    RsvpResult:
+      type: object
+      properties:
+        attending: { type: boolean }
+        rsvpCount: { type: integer }
+      required: [attending, rsvpCount]
+
+    # ---------- POSTS ----------
+    Post:
+      type: object
+      properties:
+        id: { type: integer }
+        clubId: { type: integer }
+        clubSlug: { type: string }
+        clubName: { type: string }
+        title: { type: string }
+        body: { type: string }
+        imageUrl:
+          type: ["string", "null"]
+        authorName: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, clubId, clubSlug, clubName, title, body, authorName, createdAt]
+    CreatePostBody:
+      type: object
+      properties:
+        title: { type: string }
+        body: { type: string }
+        imageUrl:
+          type: ["string", "null"]
+      required: [title, body]
+
+    # ---------- NOTICES ----------
+    Notice:
+      type: object
+      properties:
+        id: { type: integer }
+        clubId:
+          type: ["integer", "null"]
+        clubSlug:
+          type: ["string", "null"]
+        clubName:
+          type: ["string", "null"]
+        title: { type: string }
+        body: { type: string }
+        scope:
+          type: string
+          enum: [club, university]
+        pinned: { type: boolean }
+        publishAt: { type: string, format: date-time }
+        expireAt:
+          oneOf:
+            - { type: string, format: date-time }
+            - type: "null"
+        audienceRole:
+          type: ["string", "null"]
+        createdAt: { type: string, format: date-time }
+      required: [id, title, body, scope, pinned, publishAt, createdAt]
+    CreateNoticeBody:
+      type: object
+      properties:
+        title: { type: string }
+        body: { type: string }
+        scope:
+          type: string
+          enum: [club, university]
+        clubSlug:
+          type: ["string", "null"]
+        pinned: { type: boolean }
+        publishAt:
+          type: ["string", "null"]
+          format: date-time
+        expireAt:
+          type: ["string", "null"]
+          format: date-time
+        audienceRole:
+          type: ["string", "null"]
+      required: [title, body, scope]
+
+    # ---------- MEDIA ----------
+    MediaItem:
+      type: object
+      properties:
+        id: { type: integer }
+        clubId: { type: integer }
+        clubSlug: { type: string }
+        url: { type: string }
+        caption:
+          type: ["string", "null"]
+        category:
+          type: string
+          enum: [event, achievement, gallery]
+        createdAt: { type: string, format: date-time }
+      required: [id, clubId, clubSlug, url, category, createdAt]
+    AddMediaBody:
+      type: object
+      properties:
+        url: { type: string }
+        caption:
+          type: ["string", "null"]
+        category:
+          type: string
+          enum: [event, achievement, gallery]
+      required: [url, category]
+
+    # ---------- DASHBOARDS ----------
+    StudentDashboard:
+      type: object
+      properties:
+        joinedClubs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Club"
+        pendingRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/JoinRequest"
+        upcomingEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        recentNotices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
+      required: [joinedClubs, pendingRequests, upcomingEvents, recentNotices]
+    ClubAdminDashboard:
+      type: object
+      properties:
+        club:
+          $ref: "#/components/schemas/Club"
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
+        pendingRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/JoinRequest"
+        upcomingEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        pendingEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        recentPosts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+        notices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
+      required: [club, members, pendingRequests, upcomingEvents, pendingEvents, recentPosts, notices]
+    OverseerDashboard:
+      type: object
+      properties:
+        totals:
+          $ref: "#/components/schemas/OverseerTotals"
+        clubsByMembers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Club"
+        pendingEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+        recentRequests:
+          type: array
+          items:
+            $ref: "#/components/schemas/JoinRequest"
+        recentNotices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
+      required: [totals, clubsByMembers, pendingEvents, recentRequests, recentNotices]
+    OverseerTotals:
+      type: object
+      properties:
+        clubs: { type: integer }
+        students: { type: integer }
+        faculty: { type: integer }
+        clubAdmins: { type: integer }
+        approvedEvents: { type: integer }
+        pendingEvents: { type: integer }
+        notices: { type: integer }
+        pendingRequests: { type: integer }
+      required: [clubs, students, faculty, clubAdmins, approvedEvents, pendingEvents, notices, pendingRequests]
+
+    # ---------- STORAGE ----------
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name: { type: string }
+        size: { type: integer }
+        contentType: { type: string }
+      required: [name, size, contentType]
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+      required: [uploadURL, objectPath]

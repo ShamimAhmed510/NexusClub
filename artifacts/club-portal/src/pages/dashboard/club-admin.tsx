@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetClubAdminDashboardQueryKey, getGetClubQueryKey, getListEventsQueryKey } from "@workspace/api-client-react";
-import { UsersIcon, CheckCircleIcon, CalendarIcon, BellIcon, ImageIcon, EditIcon, XCircleIcon, PlusIcon, MegaphoneIcon, MapPinIcon } from "lucide-react";
+import { UsersIcon, CheckCircleIcon, CalendarIcon, BellIcon, ImageIcon, EditIcon, XCircleIcon, PlusIcon, MegaphoneIcon, MapPinIcon, ClockIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ImageUploadField } from "@/components/ImageUploadField";
 
@@ -292,35 +292,61 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
         <TabsContent value="members" className="space-y-8">
           {pendingRequests.length > 0 && (
             <div>
-              <h2 className="text-xl font-serif font-bold mb-4">Pending Requests ({pendingRequests.length})</h2>
+              <div className="flex items-center gap-3 mb-5">
+                <h2 className="text-xl font-serif font-bold">Join Requests</h2>
+                <span className="px-3 py-0.5 rounded-full text-sm font-bold bg-amber-100 text-amber-800 border border-amber-200">{pendingRequests.length} pending</span>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {pendingRequests.map(req => (
-                  <Card key={req.id} className="border-secondary/30 bg-secondary/5">
-                    <CardContent className="p-4 flex flex-col justify-between h-full">
-                      <div className="mb-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold">{req.fullName}</h3>
-                          <span className="text-xs text-muted-foreground">{format(new Date(req.createdAt), 'MMM d')}</span>
+                  <Card key={req.id} className="border-amber-200/60 bg-gradient-to-br from-amber-50/50 to-orange-50/30 overflow-hidden">
+                    <div className="h-1 bg-gradient-to-r from-amber-400 to-orange-400" />
+                    <CardContent className="p-5 flex flex-col justify-between h-full gap-4">
+                      <div>
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                              {req.fullName.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-base leading-tight">{req.fullName}</h3>
+                              <span className="text-xs text-muted-foreground">{format(new Date(req.createdAt), 'MMM d, yyyy')}</span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Pending</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">{req.email}</p>
-                        {req.studentId && (
-                          <p className="text-xs text-muted-foreground">ID: {req.studentId}</p>
-                        )}
-                        {req.department && (
-                          <p className="text-xs text-indigo-600 font-medium mb-1">{req.department}</p>
-                        )}
+
+                        {/* Member Details Grid */}
+                        <div className="grid grid-cols-1 gap-2 bg-white/70 rounded-xl p-3 border border-amber-100">
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider w-20 flex-shrink-0 mt-0.5">Email</span>
+                            <span className="text-foreground font-medium break-all">{req.email}</span>
+                          </div>
+                          <div className="flex items-start gap-2 text-sm border-t border-amber-100 pt-2">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider w-20 flex-shrink-0 mt-0.5">Member ID</span>
+                            <span className={`font-medium ${req.studentId ? 'text-indigo-700' : 'text-muted-foreground italic'}`}>
+                              {req.studentId || 'Not provided'}
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2 text-sm border-t border-amber-100 pt-2">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider w-20 flex-shrink-0 mt-0.5">Dept.</span>
+                            <span className={`font-medium ${req.department ? 'text-emerald-700' : 'text-muted-foreground italic'}`}>
+                              {req.department || 'Not provided'}
+                            </span>
+                          </div>
+                        </div>
+
                         {req.message && (
-                          <div className="bg-background p-3 rounded-md border border-border text-sm italic mt-2">
+                          <div className="bg-white/60 p-3 rounded-xl border border-amber-100 text-sm italic mt-3 text-muted-foreground leading-relaxed">
                             "{req.message}"
                           </div>
                         )}
                       </div>
-                      <div className="flex gap-2 pt-2 border-t border-border/50">
-                        <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white h-9" onClick={() => handleDecision(req.id, DecisionBodyDecision.approved)}>
-                          Approve
+                      <div className="flex gap-2 pt-2">
+                        <Button className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white h-9 shadow-sm" onClick={() => handleDecision(req.id, DecisionBodyDecision.approved)}>
+                          <CheckCircleIcon className="h-4 w-4 mr-1.5" /> Approve
                         </Button>
                         <Button variant="outline" className="flex-1 border-red-200 text-red-600 hover:bg-red-50 h-9" onClick={() => handleDecision(req.id, DecisionBodyDecision.rejected)}>
-                          Reject
+                          <XCircleIcon className="h-4 w-4 mr-1.5" /> Reject
                         </Button>
                       </div>
                     </CardContent>
@@ -639,24 +665,4 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
       </Tabs>
     </div>
   );
-}
-// Add to missing icons
-function ClockIcon(props: React.ComponentProps<"svg">) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  )
 }

@@ -28,19 +28,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm shadow-primary/5">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center space-x-2">
-              <span className="font-serif font-bold text-xl tracking-tight" style={{background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'}}>MU Portal</span>
+          <div className="flex items-center gap-7">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>MU</div>
+              <span className="font-serif font-bold text-xl tracking-tight hidden sm:block" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Portal</span>
             </Link>
             
-            <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+            <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
               {NAV_LINKS.map((link) => (
                 <Link 
                   key={link.href} 
                   href={link.href}
-                  className={`transition-colors hover:text-primary ${location.startsWith(link.href) ? "text-primary" : "text-muted-foreground"}`}
+                  className={`px-3 py-2 rounded-lg transition-all duration-200 ${location.startsWith(link.href) ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"}`}
                 >
                   {link.label}
                 </Link>

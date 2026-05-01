@@ -679,6 +679,8 @@ router.post(
         clubName: club.name,
         fullName: requester?.fullName ?? "",
         email: requester?.email ?? "",
+        studentId: requester?.studentId ?? null,
+        department: requester?.department ?? null,
       }),
     );
   },

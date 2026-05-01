@@ -46,7 +46,10 @@ Currently hosts the **Metropolitan University Club Management System** — a ful
 - **Gallery/Media Upload**: Works now that object storage is provisioned. `ImageUploadField` component handles the two-step presigned-URL flow (request URL → PUT to GCS).
 - **Overseer Create Club**: Fully functional (was always in backend, now confirmed working with DB seeded).
 - **UI/UX Overhaul**: Vibrant indigo-violet primary theme, enhanced home hero, colorful stats banner, modern club cards with gradient covers, improved notices page with color-coded badges, better header navigation with active state highlighting.
-- **`.env.example`**: Created at project root with all required variables and local setup instructions.
+- **`.env.example`**: Created at project root with all required variables (DATABASE_URL, SESSION_SECRET, PORT, CORS_ORIGIN, storage vars) and local setup instructions.
+- **UI/UX Phase 2**: Switched to Poppins + Inter Google Fonts. Body gets a fixed soft lavender-to-blue gradient. Login & Register pages rewritten with dark glassmorphism (semi-transparent cards, blurred blob decorations, frosted inputs, gradient button). Layout header is now a glass card (backdrop-blur). Footer upgraded with green "systems operational" status. Added utility classes: `glass-card-dark`, `bg-gradient-hero`, `card-premium`, `badge-pill`, `stat-number`, `section-header`, `animate-float`, `animate-pulse-glow`. Radius increased to 0.75rem globally for more rounded buttons/inputs/cards.
+- **CORS**: Updated `app.ts` to allow `*.vercel.app`, `*.railway.app`, `*.onrender.com`, and `*.replit.app` domains. `CORS_ORIGIN` env var allows custom domain injection.
+- **vercel.json**: Created at project root for Vercel frontend deployment with SPA rewrite rules and security headers. API rewrites point to a configurable backend URL.
 
 ## Important Notes (api-zod)
 

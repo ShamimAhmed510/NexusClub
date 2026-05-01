@@ -30,7 +30,29 @@ app.use(
     },
   }),
 );
-app.use(cors());
+const allowedOrigins = [
+  /^https?:\/\/localhost(:\d+)?$/,
+  /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+  /\.replit\.dev$/,
+  /\.replit\.app$/,
+  /\.vercel\.app$/,
+  /\.up\.railway\.app$/,
+  /\.onrender\.com$/,
+];
+const corsOriginEnv = process.env["CORS_ORIGIN"];
+if (corsOriginEnv) {
+  corsOriginEnv.split(",").forEach((o) => allowedOrigins.push(new RegExp(`^${o.trim().replace(/\./g, "\\.").replace(/\*/g, ".*")}$`)));
+}
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some((pat) => pat.test(origin))) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin "${origin}" not allowed`));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 

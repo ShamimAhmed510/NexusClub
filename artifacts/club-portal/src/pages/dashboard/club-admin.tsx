@@ -333,6 +333,12 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                               {req.department || 'Not provided'}
                             </span>
                           </div>
+                          <div className="flex items-start gap-2 text-sm border-t border-amber-100 pt-2">
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider w-20 flex-shrink-0 mt-0.5">Batch</span>
+                            <span className={`font-medium ${(req as any).batch ? 'text-violet-700' : 'text-muted-foreground italic'}`}>
+                              {(req as any).batch || 'Not provided'}
+                            </span>
+                          </div>
                         </div>
 
                         {req.message && (

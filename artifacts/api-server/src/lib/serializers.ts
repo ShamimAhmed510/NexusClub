@@ -146,6 +146,7 @@ export function serializeJoinRequest(
     email: string;
     studentId?: string | null;
     department?: string | null;
+    batch?: string | null;
   },
 ) {
   return {
@@ -158,6 +159,7 @@ export function serializeJoinRequest(
     email: r.email,
     studentId: r.studentId ?? null,
     department: r.department ?? null,
+    batch: r.batch ?? null,
     message: r.message,
     status: r.status,
     createdAt: r.createdAt.toISOString(),
@@ -173,6 +175,7 @@ export function serializeUserPublic(u: User) {
     role: u.role,
     studentId: u.studentId,
     department: u.department,
+    batch: u.batch,
     avatarUrl: u.avatarUrl,
     createdAt: u.createdAt.toISOString(),
   };

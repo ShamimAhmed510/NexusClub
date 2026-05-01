@@ -20,6 +20,8 @@ export interface JoinRequest {
   /** @nullable */
   department?: string | null;
   /** @nullable */
+  batch?: string | null;
+  /** @nullable */
   message?: string | null;
   status: JoinRequestStatus;
   createdAt: Date;

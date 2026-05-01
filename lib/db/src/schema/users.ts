@@ -9,6 +9,7 @@ export const usersTable = pgTable("users", {
   role: varchar("role", { length: 32 }).notNull().default("student"),
   studentId: text("student_id"),
   department: text("department"),
+  batch: text("batch"),
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

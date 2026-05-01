@@ -18,6 +18,8 @@ export interface User {
   /** @nullable */
   department?: string | null;
   /** @nullable */
+  batch?: string | null;
+  /** @nullable */
   avatarUrl?: string | null;
   createdAt: Date;
 }

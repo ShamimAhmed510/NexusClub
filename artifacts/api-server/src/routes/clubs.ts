@@ -587,6 +587,7 @@ router.get(
           email: row.u.email,
           studentId: row.u.studentId,
           department: row.u.department,
+          batch: row.u.batch,
         }),
       ),
     );
@@ -681,6 +682,7 @@ router.post(
         email: requester?.email ?? "",
         studentId: requester?.studentId ?? null,
         department: requester?.department ?? null,
+        batch: requester?.batch ?? null,
       }),
     );
   },

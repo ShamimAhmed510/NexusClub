@@ -50,7 +50,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Invalid registration payload" });
     return;
   }
-  const { username, password, fullName, email, role, studentId, department } =
+  const { username, password, fullName, email, role, studentId, department, batch } =
     parsed.data;
   const lcUsername = username.toLowerCase().trim();
   const lcEmail = email.toLowerCase().trim();
@@ -91,6 +91,7 @@ router.post("/auth/register", async (req: Request, res: Response) => {
       role,
       studentId: studentId ?? null,
       department: department ?? null,
+      batch: batch ?? null,
     })
     .returning();
   if (!created) {

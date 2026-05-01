@@ -40,9 +40,13 @@ Currently hosts the **Metropolitan University Club Management System** — a ful
 ## Recent Changes (May 2026)
 
 - **Critical Fix**: Removed MongoDB startup requirement from `artifacts/api-server/src/index.ts`. All routes use PostgreSQL/drizzle-orm; MongoDB was unused but blocking server startup.
-- **Join Request Fix**: Improved join request display in Club Admin dashboard — Member ID (studentId), Email, and Department now shown prominently with clear labels.
+- **Batch Field**: Added `batch` column to `usersTable`, OpenAPI spec (RegisterBody, User, JoinRequest), auth route, clubs route, serializers, registration form (shown for Student role), and join request display in Club Admin dashboard.
+- **Join Request Display**: Club Admin dashboard shows Member ID, Email, Department, and Batch — all clearly labeled, color-coded, with "Not provided" fallback.
+- **Image Upload Fixed**: Provisioned Replit Object Storage (GCS bucket) — `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PUBLIC_OBJECT_SEARCH_PATHS`, and `PRIVATE_OBJECT_DIR` env vars are now set. Upload endpoint (`POST /api/storage/uploads/request-url`) returns valid presigned GCS URLs.
+- **Gallery/Media Upload**: Works now that object storage is provisioned. `ImageUploadField` component handles the two-step presigned-URL flow (request URL → PUT to GCS).
 - **Overseer Create Club**: Fully functional (was always in backend, now confirmed working with DB seeded).
 - **UI/UX Overhaul**: Vibrant indigo-violet primary theme, enhanced home hero, colorful stats banner, modern club cards with gradient covers, improved notices page with color-coded badges, better header navigation with active state highlighting.
+- **`.env.example`**: Created at project root with all required variables and local setup instructions.
 
 ## Important Notes (api-zod)
 

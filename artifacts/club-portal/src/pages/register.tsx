@@ -20,6 +20,7 @@ const registerSchema = z.object({
   role: z.enum([RegisterBodyRole.student, RegisterBodyRole.faculty]),
   studentId: z.string().optional(),
   department: z.string().optional(),
+  batch: z.string().optional(),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -44,6 +45,7 @@ export default function Register() {
       role: RegisterBodyRole.student,
       studentId: "",
       department: "",
+      batch: "",
     },
   });
 
@@ -148,34 +150,66 @@ export default function Register() {
                 />
 
                 {role === RegisterBodyRole.student && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="studentId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Student ID <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. 222-15-5678" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="batch"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Batch <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g. Spring 2024" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="department"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Department <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. CSE, EEE, BBA" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+
+                {role === RegisterBodyRole.faculty && (
                   <FormField
                     control={form.control}
-                    name="studentId"
+                    name="department"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Student ID (Optional)</FormLabel>
+                        <FormLabel>Department <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
                         <FormControl>
-                          <Input placeholder="123-45-678" {...field} />
+                          <Input placeholder="e.g. CSE, EEE, BBA" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
-
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. CSE, EEE, BBA" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <Button 
                   type="submit" 

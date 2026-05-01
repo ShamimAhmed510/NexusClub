@@ -36,6 +36,8 @@ export interface RegisterBody {
   studentId?: string | null;
   /** @nullable */
   department?: string | null;
+  /** @nullable */
+  batch?: string | null;
 }
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
@@ -57,6 +59,8 @@ export interface User {
   studentId?: string | null;
   /** @nullable */
   department?: string | null;
+  /** @nullable */
+  batch?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
   createdAt: string;
@@ -276,6 +280,8 @@ export interface JoinRequest {
   studentId?: string | null;
   /** @nullable */
   department?: string | null;
+  /** @nullable */
+  batch?: string | null;
   /** @nullable */
   message?: string | null;
   status: JoinRequestStatus;

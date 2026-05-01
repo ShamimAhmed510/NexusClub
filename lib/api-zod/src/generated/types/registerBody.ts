@@ -17,4 +17,6 @@ export interface RegisterBody {
   studentId?: string | null;
   /** @nullable */
   department?: string | null;
+  /** @nullable */
+  batch?: string | null;
 }

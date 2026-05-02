@@ -63,7 +63,7 @@ export default function ClubDetail() {
   };
 
   const handleRsvp = (eventId: string) => {
-    rsvpEvent({ id: eventId as any, data: {} }, {
+    rsvpEvent({ id: eventId }, {
       onSuccess: () => {
         toast({ title: "RSVP updated" });
         queryClient.invalidateQueries({ queryKey: getGetClubQueryKey(slug) });
@@ -122,7 +122,7 @@ export default function ClubDetail() {
           <div className="flex items-center gap-3 md:mb-1">
             {viewerMembership?.status === "approved" ? (
               <Badge variant="secondary" className="px-4 py-2 text-sm bg-primary/10 text-primary border-primary/20">
-                <CheckIcon className="w-4 h-4 mr-2" /> Member{viewerMembership.role !== "member" && ` · ${viewerMembership.role.replace(/_/g, " ")}`}
+                <CheckIcon className="w-4 h-4 mr-2" /> Member{viewerMembership.role && viewerMembership.role !== "member" && ` · ${viewerMembership.role.replace(/_/g, " ")}`}
               </Badge>
             ) : viewerMembership?.status === "pending" ? (
               <Badge variant="outline" className="px-4 py-2 text-sm">

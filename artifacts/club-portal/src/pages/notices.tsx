@@ -22,7 +22,7 @@ export default function Notices() {
   const [filter, setFilter] = useState<ListNoticesScope | 'all'>('all');
 
   const { data: notices, isLoading } = useListNotices(
-    filter !== 'all' ? { query: { queryKey: ["/api/notices", { scope: filter }] } } : undefined
+    filter !== 'all' ? { scope: filter } : undefined
   );
 
   return (

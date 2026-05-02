@@ -52,7 +52,7 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
   const [eventForm, setEventForm] = useState({ title: "", description: "", startsAt: "", endsAt: "", venue: "", capacity: "", coverUrl: "" });
   const [postForm, setPostForm] = useState({ title: "", body: "", imageUrl: "" });
   const [noticeForm, setNoticeForm] = useState({ title: "", body: "" });
-  const [mediaForm, setMediaForm] = useState({ url: "", caption: "", category: AddMediaBodyCategory.gallery });
+  const [mediaForm, setMediaForm] = useState<{ url: string; caption: string; category: string }>({ url: "", caption: "", category: AddMediaBodyCategory.gallery });
   const [clubForm, setClubForm] = useState({ description: "", shortDescription: "", websiteUrl: "", facebookUrl: "", instagramUrl: "", logoUrl: "", coverUrl: "" });
   
   // Dialogs state
@@ -144,7 +144,7 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
       data: {
         url: mediaForm.url,
         caption: mediaForm.caption || undefined,
-        category: mediaForm.category
+        category: mediaForm.category as AddMediaBodyCategory
       }
     }, {
       onSuccess: () => {
@@ -595,17 +595,40 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setNoticeDialogOpen(false)}>Cancel</Button>
-                      <Button onClick={handleCreateNotice} disabled={!noticeForm.title || !noticeForm.body}>Publish Notice</Button>
+                      <Button onClick={handleCreateNotice} disabled={!noticeForm.title || !noticeForm.body}>Submit for Approval</Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
               </div>
 
+              {notices.some(n => n.status === "pending") && (
+                <div className="rounded-md bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-800 flex items-center gap-2">
+                  <ClockIcon className="h-4 w-4 shrink-0" />
+                  {notices.filter(n => n.status === "pending").length} notice(s) awaiting overseer approval — they won't be visible to students until approved.
+                </div>
+              )}
               <div className="space-y-4">
                 {notices.length > 0 ? notices.map(notice => (
-                  <Card key={notice.id} className="border-l-4 border-l-primary">
+                  <Card
+                    key={notice.id}
+                    className={
+                      notice.status === "pending"
+                        ? "border-l-4 border-l-yellow-400 bg-yellow-50/30"
+                        : notice.status === "rejected"
+                        ? "border-l-4 border-l-red-400 bg-red-50/30"
+                        : "border-l-4 border-l-primary"
+                    }
+                  >
                     <CardContent className="p-4">
-                      <h4 className="font-bold text-sm mb-1">{notice.title}</h4>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h4 className="font-bold text-sm">{notice.title}</h4>
+                        {notice.status === "pending" && (
+                          <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-100 shrink-0 text-xs">Pending</Badge>
+                        )}
+                        {notice.status === "rejected" && (
+                          <Badge variant="outline" className="text-red-700 border-red-300 bg-red-100 shrink-0 text-xs">Rejected</Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground mb-2">{format(new Date(notice.publishAt), 'MMM d, yyyy')}</p>
                       <p className="text-sm">{notice.body}</p>
                     </CardContent>

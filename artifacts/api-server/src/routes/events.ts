@@ -150,9 +150,13 @@ router.post(
       res.status(403).json({ error: "Forbidden" });
       return;
     }
+    const body = req.body as { decision?: string };
+    const decision = body?.decision === "rejected" ? "rejected" : "approved";
     const updated = await Event.findByIdAndUpdate(
       id,
-      { status: "approved", approvedById: user.id },
+      decision === "approved"
+        ? { status: "approved", approvedById: user.id }
+        : { status: "rejected" },
       { new: true },
     ).lean();
     if (!updated) {

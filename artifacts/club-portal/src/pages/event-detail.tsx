@@ -13,8 +13,8 @@ import { getGetEventQueryKey } from "@workspace/api-client-react";
 
 export default function EventDetail() {
   const [, params] = useRoute("/events/:id");
-  const id = Number(params?.id);
-  const { data: eventDetail, isLoading } = useGetEvent(id, { query: { enabled: !!id } });
+  const id = params?.id ?? "";
+  const { data: eventDetail, isLoading } = useGetEvent(id, { query: { enabled: !!id, queryKey: ["/api/events", id] } });
   const { mutate: rsvpEvent } = useRsvpEvent();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -55,7 +55,7 @@ export default function EventDetail() {
   const { event, attendees } = eventDetail;
 
   const handleRsvp = () => {
-    rsvpEvent({ id, data: {} }, {
+    rsvpEvent({ id }, {
       onSuccess: () => {
         toast({ title: "RSVP updated", description: "Your RSVP status has been successfully updated." });
         queryClient.invalidateQueries({ queryKey: getGetEventQueryKey(id) });

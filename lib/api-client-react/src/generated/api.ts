@@ -18,6 +18,7 @@ import type {
 
 import type {
   AddMediaBody,
+  ApproveEventBody,
   ApproveNoticeBody,
   AssignClubAdminBody,
   AuthSession,
@@ -1547,11 +1548,14 @@ export const getApproveEventUrl = (id: string) => {
 
 export const approveEvent = async (
   id: string,
+  approveEventBody: ApproveEventBody,
   options?: RequestInit,
 ): Promise<Event> => {
   return customFetch<Event>(getApproveEventUrl(id), {
     ...options,
     method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(approveEventBody),
   });
 };
 
@@ -1562,14 +1566,14 @@ export const getApproveEventMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof approveEvent>>,
     TError,
-    { id: string },
+    { id: string; data: BodyType<ApproveEventBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof approveEvent>>,
   TError,
-  { id: string },
+  { id: string; data: BodyType<ApproveEventBody> },
   TContext
 > => {
   const mutationKey = ["approveEvent"];
@@ -1583,11 +1587,11 @@ export const getApproveEventMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof approveEvent>>,
-    { id: string }
+    { id: string; data: BodyType<ApproveEventBody> }
   > = (props) => {
-    const { id } = props ?? {};
+    const { id, data } = props ?? {};
 
-    return approveEvent(id, requestOptions);
+    return approveEvent(id, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -1596,7 +1600,7 @@ export const getApproveEventMutationOptions = <
 export type ApproveEventMutationResult = NonNullable<
   Awaited<ReturnType<typeof approveEvent>>
 >;
-
+export type ApproveEventMutationBody = BodyType<ApproveEventBody>;
 export type ApproveEventMutationError = ErrorType<unknown>;
 
 export const useApproveEvent = <
@@ -1606,14 +1610,14 @@ export const useApproveEvent = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof approveEvent>>,
     TError,
-    { id: string },
+    { id: string; data: BodyType<ApproveEventBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof approveEvent>>,
   TError,
-  { id: string },
+  { id: string; data: BodyType<ApproveEventBody> },
   TContext
 > => {
   return useMutation(getApproveEventMutationOptions(options));

@@ -187,6 +187,14 @@ export const NoticeScope = {
   university: "university",
 } as const;
 
+export type NoticeStatus = (typeof NoticeStatus)[keyof typeof NoticeStatus];
+
+export const NoticeStatus = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
 export interface Notice {
   id: string;
   /** @nullable */
@@ -198,6 +206,7 @@ export interface Notice {
   title: string;
   body: string;
   scope: NoticeScope;
+  status: NoticeStatus;
   pinned: boolean;
   publishAt: string;
   expireAt?: string | null;
@@ -399,6 +408,18 @@ export interface CreateNoticeBody {
   expireAt?: string | null;
   /** @nullable */
   audienceRole?: string | null;
+}
+
+export type ApproveEventBodyDecision =
+  (typeof ApproveEventBodyDecision)[keyof typeof ApproveEventBodyDecision];
+
+export const ApproveEventBodyDecision = {
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export interface ApproveEventBody {
+  decision: ApproveEventBodyDecision;
 }
 
 export type ApproveNoticeBodyDecision =

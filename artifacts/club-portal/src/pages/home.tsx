@@ -17,8 +17,8 @@ const STAT_CARDS = [
 
 export default function Home() {
   const { data: clubs, isLoading: isLoadingClubs } = useListClubs();
-  const { data: events, isLoading: isLoadingEvents } = useListEvents({ query: { queryKey: ["/api/events", { scope: "upcoming" }] } });
-  const { data: notices, isLoading: isLoadingNotices } = useListNotices({ query: { queryKey: ["/api/notices", { scope: "pinned" }] } });
+  const { data: events, isLoading: isLoadingEvents } = useListEvents({ scope: "upcoming" as any });
+  const { data: notices, isLoading: isLoadingNotices } = useListNotices({ scope: "pinned" as any });
 
   const featuredClubs = clubs?.slice(0, 6) || [];
   const upcomingEvents = events?.slice(0, 4) || [];

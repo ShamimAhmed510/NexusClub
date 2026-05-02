@@ -386,6 +386,12 @@ paths:
           in: path
           required: true
           schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveEventBody"
       responses:
         "200":
           description: Approved
@@ -1052,6 +1058,9 @@ components:
         scope:
           type: string
           enum: [club, university]
+        status:
+          type: string
+          enum: [pending, approved, rejected]
         pinned: { type: boolean }
         publishAt: { type: string, format: date-time }
         expireAt:
@@ -1061,7 +1070,7 @@ components:
         audienceRole:
           type: ["string", "null"]
         createdAt: { type: string, format: date-time }
-      required: [id, title, body, scope, pinned, publishAt, createdAt]
+      required: [id, title, body, scope, status, pinned, publishAt, createdAt]
     CreateNoticeBody:
       type: object
       properties:
@@ -1082,6 +1091,13 @@ components:
         audienceRole:
           type: ["string", "null"]
       required: [title, body, scope]
+    ApproveEventBody:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+      required: [decision]
     ApproveNoticeBody:
       type: object
       properties:

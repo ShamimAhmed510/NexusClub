@@ -105,6 +105,7 @@ export type NoticeBundle = {
   title: string;
   body: string;
   scope: string;
+  status?: string;
   pinned: boolean;
   publishAt: Date;
   expireAt: Date | null;
@@ -121,6 +122,7 @@ export function serializeNotice(n: NoticeBundle) {
     title: n.title,
     body: n.body,
     scope: n.scope,
+    status: n.status ?? "approved",
     pinned: n.pinned,
     publishAt: n.publishAt.toISOString(),
     expireAt: n.expireAt ? n.expireAt.toISOString() : null,

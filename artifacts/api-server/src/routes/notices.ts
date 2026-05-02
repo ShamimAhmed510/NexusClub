@@ -1,10 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import mongoose from "mongoose";
 import { Notice, Club, Membership } from "@workspace/db";
-import { CreateNoticeBody } from "@workspace/api-zod";
+import { CreateNoticeBody, ApproveNoticeBody } from "@workspace/api-zod";
 import { getCurrentUser, requireAuth } from "../lib/auth.js";
 import { serializeNotice } from "../lib/serializers.js";
-import { z } from "zod";
 
 const router: IRouter = Router();
 
@@ -141,31 +140,29 @@ router.post("/notices", requireAuth, async (req: Request, res: Response) => {
     audienceRole: parsed.data.audienceRole ?? null,
   });
 
+  const c = created as any;
   res.status(201).json(
     serializeNotice({
-      id: created._id.toString(),
+      id: c._id.toString(),
       clubId,
       clubSlug,
       clubName,
       authorId: user.id,
-      title: created.title as string,
-      body: created.body as string,
-      scope: created.scope as string,
-      pinned: created.pinned as boolean,
-      publishAt: created.publishAt as Date,
-      expireAt: (created.expireAt as Date | null) ?? null,
-      audienceRole: (created.audienceRole as string | null) ?? null,
-      createdAt: created.createdAt as Date,
+      title: c.title,
+      body: c.body,
+      scope: c.scope,
+      status: c.status,
+      pinned: c.pinned,
+      publishAt: c.publishAt,
+      expireAt: c.expireAt ?? null,
+      audienceRole: c.audienceRole ?? null,
+      createdAt: c.createdAt,
     }),
   );
 });
 
 // ── POST /notices/:id/approve ─────────────────────────────────
 // Overseer approves or rejects a pending club notice
-
-const ApproveNoticeBody = z.object({
-  decision: z.enum(["approved", "rejected"]),
-});
 
 router.post(
   "/notices/:id/approve",

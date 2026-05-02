@@ -28,14 +28,14 @@ export async function loadUser(userId: string): Promise<AuthUser | null> {
   if (!doc) return null;
   return {
     id: (doc._id as any).toString(),
-    username: doc.username as string,
-    fullName: doc.fullName as string,
-    email: doc.email as string,
-    role: doc.role as AuthRole,
-    studentId: (doc.studentId as string | null) ?? null,
-    department: (doc.department as string | null) ?? null,
-    avatarUrl: (doc.avatarUrl as string | null) ?? null,
-    createdAt: doc.createdAt as Date,
+    username: (doc as any).username as string,
+    fullName: (doc as any).fullName as string,
+    email: (doc as any).email as string,
+    role: (doc as any).role as AuthRole,
+    studentId: ((doc as any).studentId as string | null) ?? null,
+    department: ((doc as any).department as string | null) ?? null,
+    avatarUrl: ((doc as any).avatarUrl as string | null) ?? null,
+    createdAt: (doc as any).createdAt as Date,
   };
 }
 

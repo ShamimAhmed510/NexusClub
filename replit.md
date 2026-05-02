@@ -13,12 +13,12 @@ Currently hosts the **Metropolitan University Club Management System** — a ful
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
 - **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Auth**: bcryptjs + express-session + connect-pg-simple
+- **Database**: MongoDB + Mongoose (`@workspace/db`)
+- **Validation**: Zod (via `@workspace/api-zod` — orval generated, single-mode)
+- **API codegen**: Orval (from OpenAPI spec in `lib/api-spec/openapi.yaml`)
+- **Auth**: bcryptjs + express-session + connect-mongo
 - **Frontend**: React + Vite + wouter + TanStack Query + shadcn/ui + Tailwind v4
-- **Build**: esbuild (CJS bundle)
+- **Build**: esbuild (ESM bundle via `build.mjs`)
 
 ## Artifacts
 
@@ -29,39 +29,45 @@ Currently hosts the **Metropolitan University Club Management System** — a ful
 ## MU Club Portal — Key Features
 
 - Multi-role auth (Student / Faculty / Club Admin / System Overseer); seeded overseer is `admin / admin123`.
-- 13 pre-seeded MU clubs (no user-created clubs): MU Islamic Society, MU CSE Society, MU Sports Club, MU Research Society, MU Hult Prize, MU Cultural Club, MU MUN, MU Cycling Association, MU Photographic Society, MU Robotics Club, SWE Innovators Forum, MU Debating Club, MUGAS.
+- 13 pre-seeded MU clubs. Overseer can create new clubs with an optional admin account assigned at creation time (admin email auto-set as `username@mu.edu`).
 - Club detail pages: Overview, Members (with leadership roles), Events (RSVP), Posts, Notices, Achievements, Gallery.
 - Join/approve flow: admin sees full member details (name, email, student ID, department).
-- Event creation + overseer approval, university + club notices (club admins can publish to their own club).
+- **Double-layer approval for Events**: Club admin creates → status `pending` → Overseer approves/rejects via dashboard. Only approved events show publicly.
+- **Double-layer approval for Notices**: Club admin creates notice → status `pending` → Overseer approves/rejects via dedicated approval queue tab. Only approved notices show publicly. Overseer-created notices auto-approved.
+- Notice status is exposed in the API (`status: pending | approved | rejected`) and shown in the club-admin dashboard with color-coded badges + warning banner.
 - Presigned-URL image uploads via Replit App Storage (GCS-backed, `PRIVATE_OBJECT_DIR` set).
-- Overseer can create new clubs with an optional admin account assigned at creation time.
 - Role-aware dashboard (`/dashboard`).
 
-## Recent Changes (May 2026)
+## API Design Notes
 
-- **Critical Fix**: Removed MongoDB startup requirement from `artifacts/api-server/src/index.ts`. All routes use PostgreSQL/drizzle-orm; MongoDB was unused but blocking server startup.
-- **Batch Field**: Added `batch` column to `usersTable`, OpenAPI spec (RegisterBody, User, JoinRequest), auth route, clubs route, serializers, registration form (shown for Student role), and join request display in Club Admin dashboard.
-- **Join Request Display**: Club Admin dashboard shows Member ID, Email, Department, and Batch — all clearly labeled, color-coded, with "Not provided" fallback.
-- **Image Upload Fixed**: Provisioned Replit Object Storage (GCS bucket) — `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PUBLIC_OBJECT_SEARCH_PATHS`, and `PRIVATE_OBJECT_DIR` env vars are now set. Upload endpoint (`POST /api/storage/uploads/request-url`) returns valid presigned GCS URLs.
-- **Gallery/Media Upload**: Works now that object storage is provisioned. `ImageUploadField` component handles the two-step presigned-URL flow (request URL → PUT to GCS).
-- **Overseer Create Club**: Fully functional (was always in backend, now confirmed working with DB seeded).
-- **UI/UX Overhaul**: Vibrant indigo-violet primary theme, enhanced home hero, colorful stats banner, modern club cards with gradient covers, improved notices page with color-coded badges, better header navigation with active state highlighting.
-- **`.env.example`**: Created at project root with all required variables (DATABASE_URL, SESSION_SECRET, PORT, CORS_ORIGIN, storage vars) and local setup instructions.
-- **UI/UX Phase 2**: Switched to Poppins + Inter Google Fonts. Body gets a fixed soft lavender-to-blue gradient. Login & Register pages rewritten with dark glassmorphism (semi-transparent cards, blurred blob decorations, frosted inputs, gradient button). Layout header is now a glass card (backdrop-blur). Footer upgraded with green "systems operational" status. Added utility classes: `glass-card-dark`, `bg-gradient-hero`, `card-premium`, `badge-pill`, `stat-number`, `section-header`, `animate-float`, `animate-pulse-glow`. Radius increased to 0.75rem globally for more rounded buttons/inputs/cards.
-- **CORS**: Updated `app.ts` to allow `*.vercel.app`, `*.railway.app`, `*.onrender.com`, and `*.replit.app` domains. `CORS_ORIGIN` env var allows custom domain injection.
-- **vercel.json**: Created at project root for Vercel frontend deployment with SPA rewrite rules and security headers. API rewrites point to a configurable backend URL.
+- All IDs are MongoDB ObjectId strings.
+- Approve endpoints: `POST /events/{id}/approve` and `POST /notices/{id}/approve` take `{ decision: "approved" | "rejected" }` body, require overseer role.
+- `serializeNotice` now includes `status` field in all notice responses.
+- `NoticeBundle` type in `serializers.ts` includes optional `status?: string`.
 
-## Important Notes (api-zod)
+## Codegen Notes
 
-`lib/api-zod/src/index.ts` is **manually managed** — do NOT restore `export * from "./generated/types"`. The Zod codegen generates both `generated/api.ts` (Zod schemas) and `generated/types/` (TypeScript interfaces) with the same export names for request bodies, causing TypeScript ambiguity errors. The `index.ts` selectively re-exports only enum const objects from `generated/types/` that aren't duplicated in `api.ts`.
+`lib/api-zod/src/index.ts` is **overwritten by the codegen script** — do NOT edit it manually. The Orval config uses `mode: "single"` (no `schemas` option) for the Zod target. After each Orval run, the codegen script overwrites `lib/api-zod/src/index.ts` with only `export * from "./generated/api"` to prevent barrel conflicts.
+
+Run codegen after any OpenAPI spec change:
+```
+pnpm --filter @workspace/api-spec run codegen
+```
+
+## TypeScript / Mongoose Cast Pattern
+
+Mongoose `.create()` and `.findOne().lean()` return complex typed documents. Access fields using `(doc as any).fieldName` pattern throughout api-server routes. This is consistent and correct — do NOT use `doc.fieldName as Type` directly on Mongoose Document types.
 
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 - `pnpm --filter @workspace/api-server run seed` — re-seed users, clubs, members, events, posts, notices
+
+## Deployment
+
+- `vercel.json` at project root: SPA rewrite rules + security headers. Update the API proxy destination URL before deploying frontend to Vercel.
+- API server can be deployed to Render/Railway/Fly (needs `MONGODB_URI`, `SESSION_SECRET`, `PORT`, `CORS_ORIGIN`, storage env vars).
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.

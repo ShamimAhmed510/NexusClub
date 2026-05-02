@@ -16,14 +16,14 @@ import { getListEventsQueryKey } from "@workspace/api-client-react";
 
 export default function Events() {
   const [scope, setScope] = useState<ListEventsScope>(ListEventsScope.upcoming);
-  const { data: events, isLoading } = useListEvents({ query: { queryKey: getListEventsQueryKey({ scope }) } });
+  const { data: events, isLoading } = useListEvents({ scope });
   const { mutate: rsvpEvent } = useRsvpEvent();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const handleRsvp = (eventId: number, e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigating to event detail
-    rsvpEvent({ id: eventId, data: {} }, {
+  const handleRsvp = (eventId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    rsvpEvent({ id: eventId }, {
       onSuccess: () => {
         toast({ title: "RSVP updated", description: "Your RSVP status has been successfully updated." });
         queryClient.invalidateQueries({ queryKey: getListEventsQueryKey({ scope }) });

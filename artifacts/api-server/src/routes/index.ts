@@ -7,6 +7,7 @@ import noticesRouter from "./notices";
 import dashboardRouter from "./dashboard";
 import usersRouter from "./users";
 import storageRouter from "./storage";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(noticesRouter);
 router.use(dashboardRouter);
 router.use(usersRouter);
 router.use(storageRouter);
+router.use(adminRouter);
 
 export default router;

@@ -59,8 +59,33 @@ import {
   TrendingUpIcon,
   ActivityIcon,
   FileTextIcon,
+  CloudUploadIcon,
+  Loader2Icon,
+  AlertCircleIcon,
 } from "lucide-react";
 import { format } from "date-fns";
+
+interface MigrationResult {
+  model: string;
+  id: string;
+  field: string;
+  oldUrl: string;
+  newUrl: string;
+  status: "migrated" | "skipped" | "failed";
+  error?: string;
+}
+
+interface MigrationResponse {
+  success: boolean;
+  summary: { total: number; migrated: number; skipped: number; failed: number };
+  results: MigrationResult[];
+}
+
+interface MigrationStatus {
+  pending: number;
+  breakdown: { clubs: number; events: number; posts: number; media: number; users: number };
+  cloudinaryEnabled: boolean;
+}
 
 export default function OverseerDashboard() {
   const { data: dashboard, isLoading } = useGetOverseerDashboard();
@@ -100,10 +125,52 @@ export default function OverseerDashboard() {
     adminFullName: "",
   });
 
+  const [migrateDialogOpen, setMigrateDialogOpen] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<MigrationResponse | null>(null);
+  const [migrationStatus, setMigrationStatus] = useState<MigrationStatus | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+
   // ─── handlers ────────────────────────────────────────────────────────────────
 
   const invalidateDashboard = () =>
     queryClient.invalidateQueries({ queryKey: getGetOverseerDashboardQueryKey() });
+
+  const handleOpenMigrateDialog = async () => {
+    setMigrateDialogOpen(true);
+    setMigrationResult(null);
+    setIsCheckingStatus(true);
+    try {
+      const res = await fetch("/api/admin/migrate-images/status", { credentials: "include" });
+      if (res.ok) setMigrationStatus(await res.json());
+    } catch {
+      // ignore
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
+
+  const handleRunMigration = async () => {
+    setIsMigrating(true);
+    setMigrationResult(null);
+    try {
+      const res = await fetch("/api/admin/migrate-images", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Migration failed");
+      setMigrationResult(data as MigrationResponse);
+      toast({
+        title: `Migration complete — ${(data as MigrationResponse).summary.migrated} images moved to Cloudinary`,
+      });
+      setMigrationStatus(null);
+    } catch (err: any) {
+      toast({ title: err.message ?? "Migration failed", variant: "destructive" });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
 
   const handleApproveEvent = (id: string, decision: "approved" | "rejected") => {
     approveEvent(
@@ -275,6 +342,137 @@ export default function OverseerDashboard() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {/* Migrate Images to Cloudinary */}
+          <Dialog open={migrateDialogOpen} onOpenChange={setMigrateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="border-emerald-400/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                onClick={handleOpenMigrateDialog}
+              >
+                <CloudUploadIcon className="h-4 w-4 mr-2" /> Migrate Images
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <CloudUploadIcon className="h-5 w-5 text-emerald-600" /> Migrate Images to Cloudinary
+                </DialogTitle>
+                <DialogDescription>
+                  Scans all clubs, events, posts, media, and user profiles for images stored in
+                  Replit Object Storage and permanently moves them to the Cloudinary CDN. Existing
+                  Cloudinary URLs are left untouched.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2">
+                {/* Status check */}
+                {isCheckingStatus && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2Icon className="h-4 w-4 animate-spin" /> Checking for images to migrate…
+                  </div>
+                )}
+
+                {migrationStatus && !migrationResult && (
+                  <div className={`rounded-xl border p-4 ${migrationStatus.pending === 0 ? "border-green-200 bg-green-50 dark:bg-green-950/20" : "border-amber-200 bg-amber-50 dark:bg-amber-950/20"}`}>
+                    {migrationStatus.pending === 0 ? (
+                      <div className="flex items-center gap-2 text-green-700 dark:text-green-400 font-medium text-sm">
+                        <CheckCircleIcon className="h-4 w-4" /> All images are already on Cloudinary CDN.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">
+                          {migrationStatus.pending} image{migrationStatus.pending !== 1 ? "s" : ""} ready to migrate
+                        </p>
+                        <div className="grid grid-cols-3 gap-2 text-xs text-amber-700 dark:text-amber-500">
+                          {Object.entries(migrationStatus.breakdown)
+                            .filter(([, v]) => v > 0)
+                            .map(([k, v]) => (
+                              <div key={k} className="bg-amber-100/60 dark:bg-amber-900/30 rounded-lg px-2 py-1.5 text-center">
+                                <div className="font-bold text-base text-amber-900 dark:text-amber-300">{v}</div>
+                                <div className="capitalize">{k}</div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                    {!migrationStatus.cloudinaryEnabled && (
+                      <div className="flex items-start gap-2 mt-2 text-sm text-red-600 dark:text-red-400">
+                        <AlertCircleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                        Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Migration results */}
+                {migrationResult && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 p-3 text-center">
+                        <div className="text-2xl font-bold text-green-700 dark:text-green-400">{migrationResult.summary.migrated}</div>
+                        <div className="text-xs text-green-600 dark:text-green-500 font-medium mt-0.5">Migrated</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-800/30 p-3 text-center">
+                        <div className="text-2xl font-bold text-slate-600 dark:text-slate-400">{migrationResult.summary.skipped}</div>
+                        <div className="text-xs text-slate-500 font-medium mt-0.5">Skipped</div>
+                      </div>
+                      <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 p-3 text-center">
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{migrationResult.summary.failed}</div>
+                        <div className="text-xs text-red-500 font-medium mt-0.5">Failed</div>
+                      </div>
+                    </div>
+
+                    {migrationResult.summary.total === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        No Object Storage images were found — everything is already on Cloudinary.
+                      </p>
+                    )}
+
+                    {migrationResult.results.filter(r => r.status !== "skipped").length > 0 && (
+                      <div className="space-y-1.5 max-h-52 overflow-y-auto rounded-xl border border-border p-2">
+                        {migrationResult.results.filter(r => r.status !== "skipped").map((r, i) => (
+                          <div key={i} className={`flex items-center gap-2 text-xs rounded-lg px-2.5 py-1.5 ${r.status === "migrated" ? "bg-green-50 dark:bg-green-950/20 text-green-800 dark:text-green-400" : "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400"}`}>
+                            <CheckCircleIcon className={`h-3 w-3 flex-shrink-0 ${r.status === "migrated" ? "text-green-500" : "hidden"}`} />
+                            <XCircleIcon className={`h-3 w-3 flex-shrink-0 ${r.status === "failed" ? "text-red-500" : "hidden"}`} />
+                            <span className="font-semibold">{r.model}</span>
+                            <span className="text-muted-foreground">·</span>
+                            <span>{r.field}</span>
+                            {r.error && <span className="ml-auto text-red-500 truncate max-w-[160px]">{r.error}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setMigrateDialogOpen(false)}>
+                  Close
+                </Button>
+                {!migrationResult && (
+                  <Button
+                    onClick={handleRunMigration}
+                    disabled={isMigrating || migrationStatus?.pending === 0 || migrationStatus?.cloudinaryEnabled === false}
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
+                  >
+                    {isMigrating ? (
+                      <><Loader2Icon className="h-4 w-4 mr-2 animate-spin" /> Migrating…</>
+                    ) : (
+                      <><CloudUploadIcon className="h-4 w-4 mr-2" /> Run Migration</>
+                    )}
+                  </Button>
+                )}
+                {migrationResult && migrationResult.summary.failed > 0 && (
+                  <Button onClick={handleRunMigration} disabled={isMigrating} variant="outline" className="border-amber-400/40 text-amber-700">
+                    <CloudUploadIcon className="h-4 w-4 mr-2" /> Retry Failed
+                  </Button>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           {/* Create Club */}
           <Dialog open={createClubDialogOpen} onOpenChange={setCreateClubDialogOpen}>
             <DialogTrigger asChild>

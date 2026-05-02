@@ -401,6 +401,18 @@ export interface CreateNoticeBody {
   audienceRole?: string | null;
 }
 
+export type ApproveNoticeBodyDecision =
+  (typeof ApproveNoticeBodyDecision)[keyof typeof ApproveNoticeBodyDecision];
+
+export const ApproveNoticeBodyDecision = {
+  approved: "approved",
+  rejected: "rejected",
+} as const;
+
+export interface ApproveNoticeBody {
+  decision: ApproveNoticeBodyDecision;
+}
+
 export type AddMediaBodyCategory =
   (typeof AddMediaBodyCategory)[keyof typeof AddMediaBodyCategory];
 
@@ -441,6 +453,7 @@ export interface OverseerTotals {
   clubAdmins: number;
   approvedEvents: number;
   pendingEvents: number;
+  pendingNotices: number;
   notices: number;
   pendingRequests: number;
 }
@@ -449,6 +462,7 @@ export interface OverseerDashboard {
   totals: OverseerTotals;
   clubsByMembers: Club[];
   pendingEvents: Event[];
+  pendingNotices: Notice[];
   recentRequests: JoinRequest[];
   recentNotices: Notice[];
 }

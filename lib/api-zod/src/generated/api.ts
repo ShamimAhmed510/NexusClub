@@ -588,6 +588,32 @@ export const CreateNoticeBody = zod.object({
   audienceRole: zod.string().nullish(),
 });
 
+/**
+ * @summary Approve or reject a pending club notice (overseer only)
+ */
+export const ApproveNoticeParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ApproveNoticeBody = zod.object({
+  decision: zod.enum(["approved", "rejected"]),
+});
+
+export const ApproveNoticeResponse = zod.object({
+  id: zod.string(),
+  clubId: zod.string().nullish(),
+  clubSlug: zod.string().nullish(),
+  clubName: zod.string().nullish(),
+  title: zod.string(),
+  body: zod.string(),
+  scope: zod.enum(["club", "university"]),
+  pinned: zod.boolean(),
+  publishAt: zod.coerce.date(),
+  expireAt: zod.union([zod.coerce.date(), zod.null()]).optional(),
+  audienceRole: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
 export const ListClubNoticesParams = zod.object({
   slug: zod.coerce.string(),
 });
@@ -842,6 +868,7 @@ export const GetOverseerDashboardResponse = zod.object({
     clubAdmins: zod.number(),
     approvedEvents: zod.number(),
     pendingEvents: zod.number(),
+    pendingNotices: zod.number(),
     notices: zod.number(),
     pendingRequests: zod.number(),
   }),
@@ -879,6 +906,22 @@ export const GetOverseerDashboardResponse = zod.object({
       status: zod.enum(["pending", "approved", "rejected"]),
       rsvpCount: zod.number(),
       viewerHasRsvp: zod.boolean(),
+    }),
+  ),
+  pendingNotices: zod.array(
+    zod.object({
+      id: zod.string(),
+      clubId: zod.string().nullish(),
+      clubSlug: zod.string().nullish(),
+      clubName: zod.string().nullish(),
+      title: zod.string(),
+      body: zod.string(),
+      scope: zod.enum(["club", "university"]),
+      pinned: zod.boolean(),
+      publishAt: zod.coerce.date(),
+      expireAt: zod.union([zod.coerce.date(), zod.null()]).optional(),
+      audienceRole: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
     }),
   ),
   recentRequests: zod.array(

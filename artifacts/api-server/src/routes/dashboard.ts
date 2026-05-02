@@ -140,7 +140,10 @@ router.get(
     });
 
     const recentNoticeDocs = await Notice.find({
-      $or: [{ scope: "university" }, { clubId: { $in: joinedClubIds } }],
+      $or: [
+        { scope: "university", status: "approved" },
+        { clubId: { $in: joinedClubIds }, status: "approved" },
+      ],
       publishAt: { $lte: now },
     })
       .sort({ pinned: -1, publishAt: -1 })
@@ -223,7 +226,8 @@ router.get(
           .lean(),
         Event.find({ clubId, status: "pending" }).sort({ createdAt: -1 }).lean(),
         Post.find({ clubId }).sort({ createdAt: -1 }).limit(5).lean(),
-        Notice.find({ clubId }).sort({ pinned: -1, publishAt: -1 }).limit(10).lean(),
+        // Club admin sees all notices for their club (including pending ones they created)
+        Notice.find({ clubId }).sort({ pinned: -1, publishAt: -1 }).limit(20).lean(),
       ]);
 
     const memberUserIds = memberships.map((m: any) => m.userId);
@@ -383,9 +387,11 @@ router.get(
       clubAdmins,
       approvedEvents,
       pendingEventsCount,
+      pendingNoticesCount,
       noticesCount,
       pendingRequests,
       pendingEventDocs,
+      pendingNoticeDocs,
       recentRequestDocs,
       recentNoticeDocs,
     ] = await Promise.all([
@@ -395,24 +401,32 @@ router.get(
       User.countDocuments({ role: "club_admin" }),
       Event.countDocuments({ status: "approved" }),
       Event.countDocuments({ status: "pending" }),
-      Notice.countDocuments(),
+      Notice.countDocuments({ status: "pending", scope: "club" }),
+      Notice.countDocuments({ status: "approved" }),
       JoinRequest.countDocuments({ status: "pending" }),
-      Event.find({ status: "pending" }).sort({ createdAt: -1 }).limit(10).lean(),
+      Event.find({ status: "pending" }).sort({ createdAt: -1 }).limit(20).lean(),
+      Notice.find({ status: "pending", scope: "club" })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean(),
       JoinRequest.find({ status: "pending" }).sort({ createdAt: -1 }).limit(10).lean(),
-      Notice.find({ publishAt: { $lte: now } })
+      Notice.find({ status: "approved", publishAt: { $lte: now } })
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
     ]);
 
     const pendingEvClubIds = [...new Set(pendingEventDocs.map((e: any) => s(e.clubId)))];
+    const pendingNoticeClubIds = [...new Set(pendingNoticeDocs.map((n: any) => s(n.clubId)))];
     const reqClubIds = [...new Set(recentRequestDocs.map((r: any) => s(r.clubId)))];
     const noticeClubIds = [
       ...new Set(
         recentNoticeDocs.filter((n: any) => n.clubId).map((n: any) => s(n.clubId)),
       ),
     ];
-    const allRelatedClubIds = [...new Set([...pendingEvClubIds, ...reqClubIds, ...noticeClubIds])];
+    const allRelatedClubIds = [
+      ...new Set([...pendingEvClubIds, ...pendingNoticeClubIds, ...reqClubIds, ...noticeClubIds]),
+    ];
     const reqUserIds = recentRequestDocs.map((r: any) => r.userId);
 
     const [relatedClubs, reqUsers] = await Promise.all([
@@ -443,6 +457,25 @@ router.get(
         status: e.status,
         rsvpCount: 0,
         viewerHasRsvp: false,
+      });
+    });
+
+    const pendingNoticesSerialized = pendingNoticeDocs.map((n: any) => {
+      const club: any = clubMap.get(s(n.clubId));
+      return serializeNotice({
+        id: s(n._id),
+        clubId: s(n.clubId),
+        clubSlug: club?.slug ?? null,
+        clubName: club?.name ?? null,
+        authorId: s(n.authorId),
+        title: n.title,
+        body: n.body,
+        scope: n.scope,
+        pinned: n.pinned,
+        publishAt: n.publishAt,
+        expireAt: n.expireAt ?? null,
+        audienceRole: n.audienceRole ?? null,
+        createdAt: n.createdAt,
       });
     });
 
@@ -525,11 +558,13 @@ router.get(
         clubAdmins,
         approvedEvents,
         pendingEvents: pendingEventsCount,
+        pendingNotices: pendingNoticesCount,
         notices: noticesCount,
         pendingRequests,
       },
       clubsByMembers,
       pendingEvents: pendingEventsSerialized,
+      pendingNotices: pendingNoticesSerialized,
       recentRequests,
       recentNotices,
     });

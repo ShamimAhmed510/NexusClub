@@ -15,6 +15,7 @@ export interface OverseerDashboard {
   totals: OverseerTotals;
   clubsByMembers: Club[];
   pendingEvents: Event[];
+  pendingNotices: Notice[];
   recentRequests: JoinRequest[];
   recentNotices: Notice[];
 }

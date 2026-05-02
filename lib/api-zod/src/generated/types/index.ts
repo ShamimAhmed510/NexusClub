@@ -8,6 +8,8 @@
 
 export * from "./addMediaBody";
 export * from "./addMediaBodyCategory";
+export * from "./approveNoticeBody";
+export * from "./approveNoticeBodyDecision";
 export * from "./assignClubAdminBody";
 export * from "./assignClubAdminBodyRole";
 export * from "./authSession";

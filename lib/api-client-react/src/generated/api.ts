@@ -18,6 +18,7 @@ import type {
 
 import type {
   AddMediaBody,
+  ApproveNoticeBody,
   AssignClubAdminBody,
   AuthSession,
   Club,
@@ -2029,6 +2030,93 @@ export const useCreateNotice = <
   TContext
 > => {
   return useMutation(getCreateNoticeMutationOptions(options));
+};
+
+/**
+ * @summary Approve or reject a pending club notice (overseer only)
+ */
+export const getApproveNoticeUrl = (id: string) => {
+  return `/api/notices/${id}/approve`;
+};
+
+export const approveNotice = async (
+  id: string,
+  approveNoticeBody: ApproveNoticeBody,
+  options?: RequestInit,
+): Promise<Notice> => {
+  return customFetch<Notice>(getApproveNoticeUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(approveNoticeBody),
+  });
+};
+
+export const getApproveNoticeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveNotice>>,
+    TError,
+    { id: string; data: BodyType<ApproveNoticeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveNotice>>,
+  TError,
+  { id: string; data: BodyType<ApproveNoticeBody> },
+  TContext
+> => {
+  const mutationKey = ["approveNotice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveNotice>>,
+    { id: string; data: BodyType<ApproveNoticeBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return approveNotice(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveNoticeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveNotice>>
+>;
+export type ApproveNoticeMutationBody = BodyType<ApproveNoticeBody>;
+export type ApproveNoticeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Approve or reject a pending club notice (overseer only)
+ */
+export const useApproveNotice = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveNotice>>,
+    TError,
+    { id: string; data: BodyType<ApproveNoticeBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveNotice>>,
+  TError,
+  { id: string; data: BodyType<ApproveNoticeBody> },
+  TContext
+> => {
+  return useMutation(getApproveNoticeMutationOptions(options));
 };
 
 export const getListClubNoticesUrl = (slug: string) => {

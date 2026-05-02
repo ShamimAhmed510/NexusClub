@@ -489,6 +489,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Notice"
+  /notices/{id}/approve:
+    post:
+      operationId: approveNotice
+      tags: [notices]
+      summary: Approve or reject a pending club notice (overseer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveNoticeBody"
+      responses:
+        "200":
+          description: Notice decision applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notice"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /clubs/{slug}/notices:
     get:
       operationId: listClubNotices
@@ -1053,6 +1082,13 @@ components:
         audienceRole:
           type: ["string", "null"]
       required: [title, body, scope]
+    ApproveNoticeBody:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+      required: [decision]
 
     # ---------- MEDIA ----------
     MediaItem:
@@ -1144,6 +1180,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Event"
+        pendingNotices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notice"
         recentRequests:
           type: array
           items:
@@ -1152,7 +1192,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Notice"
-      required: [totals, clubsByMembers, pendingEvents, recentRequests, recentNotices]
+      required: [totals, clubsByMembers, pendingEvents, pendingNotices, recentRequests, recentNotices]
     OverseerTotals:
       type: object
       properties:
@@ -1162,9 +1202,10 @@ components:
         clubAdmins: { type: integer }
         approvedEvents: { type: integer }
         pendingEvents: { type: integer }
+        pendingNotices: { type: integer }
         notices: { type: integer }
         pendingRequests: { type: integer }
-      required: [clubs, students, faculty, clubAdmins, approvedEvents, pendingEvents, notices, pendingRequests]
+      required: [clubs, students, faculty, clubAdmins, approvedEvents, pendingEvents, pendingNotices, notices, pendingRequests]
 
     # ---------- STORAGE ----------
     RequestUploadUrlBody:

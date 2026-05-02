@@ -7,6 +7,12 @@ const noticeSchema = new Schema(
     title: { type: String, required: true },
     body: { type: String, required: true },
     scope: { type: String, required: true, default: "club" },
+    status: {
+      type: String,
+      required: true,
+      default: "pending",
+      enum: ["pending", "approved", "rejected"],
+    },
     pinned: { type: Boolean, required: true, default: false },
     publishAt: { type: Date, required: true, default: () => new Date() },
     expireAt: { type: Date, default: null },

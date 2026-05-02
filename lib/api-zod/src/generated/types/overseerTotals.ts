@@ -13,6 +13,7 @@ export interface OverseerTotals {
   clubAdmins: number;
   approvedEvents: number;
   pendingEvents: number;
+  pendingNotices: number;
   notices: number;
   pendingRequests: number;
 }

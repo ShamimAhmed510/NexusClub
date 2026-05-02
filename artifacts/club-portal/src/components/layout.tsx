@@ -1,16 +1,17 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LayoutDashboard, LogOut } from "lucide-react";
+import { Menu, LayoutDashboard, LogOut, Sun, Moon } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -25,24 +26,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { session, logoutMutation } = useAuth();
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isDark, toggleTheme } = useTheme();
+
+  const ThemeIcon = isDark ? Sun : Moon;
+  const themeLabel = isDark ? "Switch to light mode" : "Switch to dark mode";
 
   return (
     <div className="min-h-[100dvh] flex flex-col text-foreground">
       {/* ─── HEADER ─── */}
-      <header className="sticky top-0 z-50 w-full glass-card border-b border-white/40 shadow-sm">
+      <header className="sticky top-0 z-50 w-full glass-card border-b border-white/40 dark:border-white/10 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo + Nav */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="flex items-center gap-4 lg:gap-6 min-w-0">
+            <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
               <div
                 className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg transition-transform group-hover:scale-105"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
+                style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}
               >
                 MU
               </div>
               <span
                 className="font-serif font-bold text-xl tracking-tight hidden sm:block"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+                style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}
               >
                 Portal
               </span>
@@ -56,7 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   className={`px-3.5 py-2 rounded-xl transition-all duration-200 font-medium ${
                     location.startsWith(link.href)
                       ? "bg-primary/10 text-primary font-semibold shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/60"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-white/10"
                   }`}
                 >
                   {link.label}
@@ -66,27 +71,36 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Theme toggle — always visible */}
+            <button
+              onClick={toggleTheme}
+              aria-label={themeLabel}
+              className="h-9 w-9 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-white/10 transition-all duration-200 flex-shrink-0"
+            >
+              <ThemeIcon className="h-4.5 w-4.5" />
+            </button>
+
+            <div className="hidden md:flex items-center gap-2">
               {session ? (
                 <>
                   <Link
                     href="/dashboard"
                     className={`text-sm font-medium flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-200 ${
-                      location.startsWith('/dashboard')
-                        ? 'bg-primary/10 text-primary font-semibold'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-white/60'
+                      location.startsWith("/dashboard")
+                        ? "bg-primary/10 text-primary font-semibold"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-white/10"
                     }`}
                   >
                     <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
+                    <span className="hidden lg:inline">Dashboard</span>
                   </Link>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 ring-2 ring-primary/20 hover:ring-primary/40 transition-all">
                         <Avatar className="h-9 w-9">
                           <AvatarImage src={session.user.avatarUrl || ""} alt={session.user.fullName} />
-                          <AvatarFallback className="text-xs font-bold" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: 'white' }}>
+                          <AvatarFallback className="text-xs font-bold" style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)", color: "white" }}>
                             {session.user.fullName.substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
@@ -118,11 +132,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </>
               ) : (
                 <>
-                  <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-xl hover:bg-white/60">
+                  <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-3 py-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10">
                     Log in
                   </Link>
                   <Link href="/register">
-                    <Button size="sm" className="rounded-xl px-4 shadow-md font-semibold" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>
+                    <Button size="sm" className="rounded-xl px-4 shadow-md font-semibold" style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}>
                       Register
                     </Button>
                   </Link>
@@ -133,17 +147,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {/* Mobile menu */}
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" className="md:hidden px-2 rounded-xl hover:bg-white/60">
+                <Button variant="ghost" className="md:hidden px-2 rounded-xl hover:bg-white/60 dark:hover:bg-white/10">
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[360px] glass-card border-l border-white/40">
-                <div className="flex items-center gap-2.5 mb-8 mt-2">
-                  <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>MU</div>
-                  <span className="font-serif font-bold text-xl" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Portal</span>
+              <SheetContent side="right" className="w-[300px] sm:w-[360px] glass-card border-l border-white/40 dark:border-white/10 flex flex-col">
+                <div className="flex items-center justify-between mb-8 mt-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg" style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}>MU</div>
+                    <span className="font-serif font-bold text-xl" style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Portal</span>
+                  </div>
                 </div>
-                <nav className="flex flex-col gap-2">
+                <nav className="flex flex-col gap-1.5 flex-1">
                   {NAV_LINKS.map((link) => (
                     <Link
                       key={link.href}
@@ -152,7 +168,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       className={`text-base font-medium transition-all px-4 py-3 rounded-xl ${
                         location.startsWith(link.href)
                           ? "bg-primary/10 text-primary font-semibold"
-                          : "text-muted-foreground hover:text-foreground hover:bg-white/60"
+                          : "text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-white/10"
                       }`}
                     >
                       {link.label}
@@ -163,12 +179,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                       <Link
                         href="/dashboard"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="text-base font-medium text-muted-foreground hover:text-primary px-4 py-3 rounded-xl hover:bg-white/60 flex items-center gap-2"
+                        className="text-base font-medium text-muted-foreground hover:text-primary px-4 py-3 rounded-xl hover:bg-white/60 dark:hover:bg-white/10 flex items-center gap-2"
                       >
                         <LayoutDashboard className="h-4 w-4" /> Dashboard
                       </Link>
                       <button
-                        className="justify-start px-4 py-3 text-base font-medium text-destructive hover:bg-red-50 rounded-xl flex items-center gap-2 w-full text-left"
+                        className="justify-start px-4 py-3 text-base font-medium text-destructive hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl flex items-center gap-2 w-full text-left"
                         onClick={() => { logoutMutation.mutate(); setIsMobileMenuOpen(false); }}
                       >
                         <LogOut className="h-4 w-4" /> Log out
@@ -180,11 +196,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <Button variant="outline" className="w-full rounded-xl">Log in</Button>
                       </Link>
                       <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Button className="w-full rounded-xl" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>Register</Button>
+                        <Button className="w-full rounded-xl" style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}>Register</Button>
                       </Link>
                     </div>
                   )}
                 </nav>
+
+                {/* Theme toggle in mobile sheet */}
+                <div className="mt-auto pt-4 border-t border-border/40">
+                  <button
+                    onClick={() => { toggleTheme(); setIsMobileMenuOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/60 dark:hover:bg-white/10 transition-all text-sm font-medium"
+                  >
+                    <ThemeIcon className="h-4 w-4" />
+                    {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                  </button>
+                </div>
               </SheetContent>
             </Sheet>
           </div>
@@ -197,19 +224,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-white/40 py-12 md:py-16 glass-card mt-auto">
+      <footer className="border-t border-white/40 dark:border-white/10 py-10 md:py-14 glass-card mt-auto">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
-            <div className="md:col-span-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+            <div className="col-span-2">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>MU</div>
-                <span className="font-serif font-bold text-xl" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Metropolitan University</span>
+                <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md" style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}>MU</div>
+                <span className="font-serif font-bold text-xl" style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Metropolitan University</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
                 Empowering student life and academic excellence through organized, vibrant, and engaging club activities. The official portal for all MU societies.
               </p>
               <div className="flex gap-2 mt-4">
-                {['🎓', '🏆', '🌟'].map((emoji, i) => (
+                {["🎓", "🏆", "🌟"].map((emoji, i) => (
                   <span key={i} className="text-xl">{emoji}</span>
                 ))}
               </div>
@@ -224,9 +251,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   { href: "/university", label: "About MU" },
                 ].map(({ href, label }) => (
                   <li key={href}>
-                    <Link href={href} className="text-muted-foreground hover:text-primary transition-colors font-medium">
-                      {label}
-                    </Link>
+                    <Link href={href} className="text-muted-foreground hover:text-primary transition-colors font-medium">{label}</Link>
                   </li>
                 ))}
               </ul>
@@ -238,9 +263,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <>
                     <li><Link href="/dashboard" className="text-muted-foreground hover:text-primary transition-colors font-medium">My Dashboard</Link></li>
                     <li>
-                      <button onClick={() => logoutMutation.mutate()} className="text-muted-foreground hover:text-primary transition-colors font-medium text-left">
-                        Sign Out
-                      </button>
+                      <button onClick={() => logoutMutation.mutate()} className="text-muted-foreground hover:text-primary transition-colors font-medium text-left">Sign Out</button>
                     </li>
                   </>
                 ) : (
@@ -252,7 +275,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </ul>
             </div>
           </div>
-          <div className="mt-10 pt-8 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted-foreground">
+          <div className="mt-8 pt-6 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} Metropolitan University. All rights reserved.</p>
             <div className="flex items-center gap-1.5 text-xs">
               <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>

@@ -6,6 +6,7 @@ import {
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { getCurrentUser, requireAuth } from "../lib/auth.js";
+import { cloudinaryEnabled, uploadToCloudinary } from "../lib/cloudinary.js";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -22,9 +23,11 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 /**
  * POST /storage/uploads/request-url
  *
- * Request a presigned URL for image upload.
- * Restricted to authenticated club admins and overseers.
- * Validates: content type must be an image, size must be ≤ 5 MB.
+ * When Cloudinary is configured: accepts a base64 data URI directly and
+ * uploads to Cloudinary, returning the permanent CDN URL in `objectPath`.
+ *
+ * When Cloudinary is not configured: falls back to Replit Object Storage
+ * presigned-URL flow (development / local).
  */
 router.post(
   "/storage/uploads/request-url",
@@ -45,6 +48,7 @@ router.post(
     }
 
     const { name, size, contentType } = parsed.data;
+    const dataUri: string | undefined = (req.body as any).dataUri;
 
     if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
       res.status(400).json({
@@ -58,6 +62,25 @@ router.post(
       return;
     }
 
+    // ── Cloudinary path: upload directly and return permanent CDN URL ──
+    if (cloudinaryEnabled && dataUri) {
+      try {
+        const secureUrl = await uploadToCloudinary(dataUri, "mu-portal");
+        res.json(
+          RequestUploadUrlResponse.parse({
+            uploadURL: secureUrl,
+            objectPath: secureUrl,
+            metadata: { name, size, contentType },
+          }),
+        );
+      } catch (error) {
+        req.log.error({ err: error }, "Cloudinary upload error");
+        res.status(500).json({ error: "Image upload to Cloudinary failed" });
+      }
+      return;
+    }
+
+    // ── Fallback: Replit Object Storage presigned URL ──
     try {
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
@@ -78,9 +101,6 @@ router.post(
 
 /**
  * GET /storage/public-objects/*
- *
- * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.
- * Unconditionally public — no authentication or ACL checks.
  */
 router.get(
   "/storage/public-objects/*filePath",
@@ -114,9 +134,6 @@ router.get(
 
 /**
  * GET /storage/objects/*
- *
- * Serve uploaded object entities (club images, event covers, etc.).
- * Publicly readable — images stored here are intended to be displayed in the app.
  */
 router.get("/storage/objects/*path", async (req: Request, res: Response) => {
   try {

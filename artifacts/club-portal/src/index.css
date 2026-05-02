@@ -192,6 +192,20 @@
     letter-spacing: -0.01em;
   }
 
+  :root.dark body {
+    background: linear-gradient(135deg, hsl(232, 45%, 9%) 0%, hsl(240, 40%, 11%) 50%, hsl(232, 45%, 9%) 100%);
+    background-attachment: fixed;
+  }
+
+  /* Responsive helpers */
+  img { max-width: 100%; height: auto; }
+
+  /* Prevent horizontal scroll on mobile */
+  .container { width: 100%; overflow-x: hidden; }
+
+  /* Touch target minimum */
+  button, a, [role="button"] { min-height: 40px; }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
     letter-spacing: -0.02em;

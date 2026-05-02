@@ -74,7 +74,7 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
 
   const { club, members, pendingRequests, upcomingEvents, pendingEvents, recentPosts, notices } = dashboard;
 
-  const handleDecision = (id: number, decision: DecisionBodyDecision) => {
+  const handleDecision = (id: string, decision: DecisionBodyDecision) => {
     decideJoinRequest({ id, data: { decision } }, {
       onSuccess: () => {
         toast({ title: `Request ${decision}` });
@@ -222,11 +222,11 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
             
             <div className="space-y-4">
               <Label>Logo</Label>
-              <ImageUploadField value={clubForm.logoUrl} onChange={url => setClubForm({...clubForm, logoUrl: url || ""})} />
+              <ImageUploadField variant="square" value={clubForm.logoUrl} onChange={url => setClubForm({...clubForm, logoUrl: url || ""})} />
             </div>
             <div className="space-y-4">
               <Label>Cover Image</Label>
-              <ImageUploadField value={clubForm.coverUrl} onChange={url => setClubForm({...clubForm, coverUrl: url || ""})} />
+              <ImageUploadField variant="banner" value={clubForm.coverUrl} onChange={url => setClubForm({...clubForm, coverUrl: url || ""})} />
             </div>
 
             <div className="space-y-4 md:col-span-2">
@@ -457,7 +457,7 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <Label>Cover Image</Label>
-                    <ImageUploadField value={eventForm.coverUrl} onChange={url => setEventForm({...eventForm, coverUrl: url || ""})} />
+                    <ImageUploadField variant="banner" value={eventForm.coverUrl} onChange={url => setEventForm({...eventForm, coverUrl: url || ""})} />
                   </div>
                 </div>
                 <DialogFooter>
@@ -544,7 +544,7 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                       </div>
                       <div className="space-y-2">
                         <Label>Image (Optional)</Label>
-                        <ImageUploadField value={postForm.imageUrl} onChange={url => setPostForm({...postForm, imageUrl: url || ""})} />
+                        <ImageUploadField variant="standard" value={postForm.imageUrl} onChange={url => setPostForm({...postForm, imageUrl: url || ""})} />
                       </div>
                     </div>
                     <DialogFooter>
@@ -633,7 +633,7 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label>Image</Label>
-                    <ImageUploadField value={mediaForm.url} onChange={url => setMediaForm({...mediaForm, url: url || ""})} />
+                    <ImageUploadField variant="standard" value={mediaForm.url} onChange={url => setMediaForm({...mediaForm, url: url || ""})} />
                   </div>
                   <div className="space-y-2">
                     <Label>Category</Label>

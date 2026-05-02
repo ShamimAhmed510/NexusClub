@@ -15,6 +15,8 @@ export function connectDB(): Promise<void> {
   connectionPromise = mongoose
     .connect(uri, { bufferCommands: false })
     .then(() => {
+      console.log("[db] MongoDB connected successfully");
+
       mongoose.connection.on("error", (err) => {
         console.error("[db] MongoDB error:", err);
         connectionPromise = null;

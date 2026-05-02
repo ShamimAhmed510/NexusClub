@@ -94,6 +94,7 @@ export default function OverseerDashboard() {
     name: "",
     category: "",
     shortDescription: "",
+    description: "",
     adminUsername: "",
     adminPassword: "",
     adminFullName: "",
@@ -195,6 +196,7 @@ export default function OverseerDashboard() {
           name: clubForm.name,
           category: clubForm.category || undefined,
           shortDescription: clubForm.shortDescription || undefined,
+          description: clubForm.description || undefined,
           ...(hasAdminCredentials
             ? {
                 adminUsername: clubForm.adminUsername,
@@ -217,6 +219,7 @@ export default function OverseerDashboard() {
             name: "",
             category: "",
             shortDescription: "",
+            description: "",
             adminUsername: "",
             adminPassword: "",
             adminFullName: "",
@@ -317,6 +320,16 @@ export default function OverseerDashboard() {
                       placeholder="One-liner"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Full Description</Label>
+                  <Textarea
+                    value={clubForm.description}
+                    onChange={(e) => setClubForm((f) => ({ ...f, description: e.target.value }))}
+                    placeholder="Detailed description of the club's mission, activities, and goals..."
+                    rows={4}
+                  />
                 </div>
 
                 <div className="border rounded-lg p-4 bg-muted/20 space-y-3">

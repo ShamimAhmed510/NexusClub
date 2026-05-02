@@ -161,6 +161,47 @@ router.post("/notices", requireAuth, async (req: Request, res: Response) => {
   );
 });
 
+// ── DELETE /notices/:id ───────────────────────────────────────
+// Club admin (for their own club notice) or overseer can delete
+
+router.delete(
+  "/notices/:id",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const user = await getCurrentUser(req);
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const notice = await Notice.findById(id).lean();
+    if (!notice) {
+      res.status(404).json({ error: "Notice not found" });
+      return;
+    }
+    if (user.role === "overseer") {
+      await Notice.findByIdAndDelete(id);
+      res.status(204).send();
+      return;
+    }
+    if ((notice as any).clubId) {
+      const clubId = s((notice as any).clubId);
+      const membership = await Membership.findOne({ userId: user.id, clubId }).lean();
+      const adminRoles = ["president", "vice_president", "secretary"];
+      if (membership && adminRoles.includes((membership as any).role)) {
+        await Notice.findByIdAndDelete(id);
+        res.status(204).send();
+        return;
+      }
+    }
+    res.status(403).json({ error: "Forbidden" });
+  },
+);
+
 // ── POST /notices/:id/approve ─────────────────────────────────
 // Overseer approves or rejects a pending club notice
 

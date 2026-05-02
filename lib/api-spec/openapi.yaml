@@ -362,6 +362,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/Event"
   /events/{id}:
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete an event (club admin or overseer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     get:
       operationId: getEvent
       tags: [events]
@@ -457,6 +481,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/Post"
 
+  /clubs/{slug}/posts/{id}:
+    delete:
+      operationId: deletePost
+      tags: [posts]
+      summary: Delete a club post (club admin or overseer only)
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   # ---------- NOTICES ----------
   /notices:
     get:
@@ -495,6 +549,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Notice"
+  /notices/{id}:
+    delete:
+      operationId: deleteNotice
+      tags: [notices]
+      summary: Delete a notice (author club admin or overseer only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Deleted
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /notices/{id}/approve:
     post:
       operationId: approveNotice

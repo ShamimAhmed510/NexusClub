@@ -1464,6 +1464,90 @@ export const useCreateEvent = <
   return useMutation(getCreateEventMutationOptions(options));
 };
 
+/**
+ * @summary Delete an event (club admin or overseer only)
+ */
+export const getDeleteEventUrl = (id: string) => {
+  return `/api/events/${id}`;
+};
+
+export const deleteEvent = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteEventUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteEventMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEvent>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteEvent>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteEvent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteEvent>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteEvent(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteEventMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteEvent>>
+>;
+
+export type DeleteEventMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete an event (club admin or overseer only)
+ */
+export const useDeleteEvent = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEvent>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteEvent>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteEventMutationOptions(options));
+};
+
 export const getGetEventUrl = (id: string) => {
   return `/api/events/${id}`;
 };
@@ -1863,6 +1947,91 @@ export const useCreatePost = <
 };
 
 /**
+ * @summary Delete a club post (club admin or overseer only)
+ */
+export const getDeletePostUrl = (slug: string, id: string) => {
+  return `/api/clubs/${slug}/posts/${id}`;
+};
+
+export const deletePost = async (
+  slug: string,
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeletePostUrl(slug, id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeletePostMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePost>>,
+    TError,
+    { slug: string; id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deletePost>>,
+  TError,
+  { slug: string; id: string },
+  TContext
+> => {
+  const mutationKey = ["deletePost"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePost>>,
+    { slug: string; id: string }
+  > = (props) => {
+    const { slug, id } = props ?? {};
+
+    return deletePost(slug, id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeletePostMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePost>>
+>;
+
+export type DeletePostMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a club post (club admin or overseer only)
+ */
+export const useDeletePost = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deletePost>>,
+    TError,
+    { slug: string; id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deletePost>>,
+  TError,
+  { slug: string; id: string },
+  TContext
+> => {
+  return useMutation(getDeletePostMutationOptions(options));
+};
+
+/**
  * @summary University-wide and club notices
  */
 export const getListNoticesUrl = (params?: ListNoticesParams) => {
@@ -2034,6 +2203,90 @@ export const useCreateNotice = <
   TContext
 > => {
   return useMutation(getCreateNoticeMutationOptions(options));
+};
+
+/**
+ * @summary Delete a notice (author club admin or overseer only)
+ */
+export const getDeleteNoticeUrl = (id: string) => {
+  return `/api/notices/${id}`;
+};
+
+export const deleteNotice = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteNoticeUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteNoticeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteNotice>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteNotice>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteNotice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteNotice>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteNotice(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteNoticeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteNotice>>
+>;
+
+export type DeleteNoticeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a notice (author club admin or overseer only)
+ */
+export const useDeleteNotice = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteNotice>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteNotice>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteNoticeMutationOptions(options));
 };
 
 /**

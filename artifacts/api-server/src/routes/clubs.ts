@@ -884,6 +884,42 @@ router.post(
   },
 );
 
+router.delete(
+  "/clubs/:slug/posts/:id",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const slug = String(req.params.slug);
+    const id = String(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const user = await getCurrentUser(req);
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const club = await Club.findOne({ slug }).lean();
+    if (!club) {
+      res.status(404).json({ error: "Club not found" });
+      return;
+    }
+    const clubId = s((club as any)._id);
+    const allowed = await userIsClubAdminOrOverseer(user.id, clubId, user.role);
+    if (!allowed) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    const post = await Post.findById(id).lean();
+    if (!post) {
+      res.status(404).json({ error: "Post not found" });
+      return;
+    }
+    await Post.findByIdAndDelete(id);
+    res.status(204).send();
+  },
+);
+
 // ─────────────────────────────────────────────────────────────
 // NOTICES
 // ─────────────────────────────────────────────────────────────

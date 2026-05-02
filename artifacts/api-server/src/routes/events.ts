@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import mongoose from "mongoose";
-import { Event, EventRsvp, Club, User } from "@workspace/db";
+import { Event, EventRsvp, Membership, Club, User } from "@workspace/db";
 import { getCurrentUser, requireAuth } from "../lib/auth.js";
 import { serializeEvent, serializeUserPublic } from "../lib/serializers.js";
 
@@ -131,6 +131,42 @@ router.get("/events/:id", async (req: Request, res: Response) => {
     ),
   });
 });
+
+router.delete(
+  "/events/:id",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ error: "Invalid id" });
+      return;
+    }
+    const user = await getCurrentUser(req);
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const event = await Event.findById(id).lean();
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+    const clubId = s((event as any).clubId);
+    const membership = await Membership.findOne({
+      userId: user.id,
+      clubId,
+    }).lean();
+    const adminRoles = ["president", "vice_president", "secretary"];
+    const isClubAdmin = membership && adminRoles.includes((membership as any).role);
+    if (user.role !== "overseer" && !isClubAdmin) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    await Event.findByIdAndDelete(id);
+    await EventRsvp.deleteMany({ eventId: id });
+    res.status(204).send();
+  },
+);
 
 router.post(
   "/events/:id/approve",

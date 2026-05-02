@@ -461,6 +461,13 @@ export const CreateEventBody = zod.object({
   coverUrl: zod.string().nullish(),
 });
 
+/**
+ * @summary Delete an event (club admin or overseer only)
+ */
+export const DeleteEventParams = zod.object({
+  id: zod.coerce.string(),
+});
+
 export const GetEventParams = zod.object({
   id: zod.coerce.string(),
 });
@@ -560,6 +567,14 @@ export const CreatePostBody = zod.object({
 });
 
 /**
+ * @summary Delete a club post (club admin or overseer only)
+ */
+export const DeletePostParams = zod.object({
+  slug: zod.coerce.string(),
+  id: zod.coerce.string(),
+});
+
+/**
  * @summary University-wide and club notices
  */
 export const ListNoticesQueryParams = zod.object({
@@ -592,6 +607,13 @@ export const CreateNoticeBody = zod.object({
   publishAt: zod.coerce.date().nullish(),
   expireAt: zod.coerce.date().nullish(),
   audienceRole: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete a notice (author club admin or overseer only)
+ */
+export const DeleteNoticeParams = zod.object({
+  id: zod.coerce.string(),
 });
 
 /**

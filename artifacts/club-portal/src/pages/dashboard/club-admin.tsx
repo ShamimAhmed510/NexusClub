@@ -9,6 +9,9 @@ import {
   useCreateNotice,
   useAddClubMedia,
   useUpdateClub,
+  useDeleteEvent,
+  useDeletePost,
+  useDeleteNotice,
   MemberRole,
   DecisionBodyDecision,
   EventStatus,
@@ -28,7 +31,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetClubAdminDashboardQueryKey, getGetClubQueryKey, getListEventsQueryKey } from "@workspace/api-client-react";
-import { UsersIcon, CheckCircleIcon, CalendarIcon, BellIcon, ImageIcon, EditIcon, XCircleIcon, PlusIcon, MegaphoneIcon, MapPinIcon, ClockIcon } from "lucide-react";
+import { UsersIcon, CheckCircleIcon, CalendarIcon, BellIcon, ImageIcon, EditIcon, XCircleIcon, PlusIcon, MegaphoneIcon, MapPinIcon, ClockIcon, Trash2Icon } from "lucide-react";
 import { format } from "date-fns";
 import { ImageUploadField } from "@/components/ImageUploadField";
 
@@ -44,6 +47,9 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
   const { mutate: createNotice } = useCreateNotice();
   const { mutate: addMedia } = useAddClubMedia();
   const { mutate: updateClub } = useUpdateClub();
+  const { mutate: deleteEvent } = useDeleteEvent();
+  const { mutate: deletePost } = useDeletePost();
+  const { mutate: deleteNotice } = useDeleteNotice();
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -135,6 +141,41 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
         setNoticeForm({ title: "", body: "" });
         queryClient.invalidateQueries({ queryKey: getGetClubAdminDashboardQueryKey(slug) });
       }
+    });
+  };
+
+  const handleDeleteEvent = (id: string, title: string) => {
+    if (!window.confirm(`Delete event "${title}"? This cannot be undone.`)) return;
+    deleteEvent({ id }, {
+      onSuccess: () => {
+        toast({ title: "Event deleted" });
+        queryClient.invalidateQueries({ queryKey: getGetClubAdminDashboardQueryKey(slug) });
+        queryClient.invalidateQueries({ queryKey: getListEventsQueryKey({ scope: "upcoming" }) });
+      },
+      onError: () => toast({ title: "Failed to delete event", variant: "destructive" }),
+    });
+  };
+
+  const handleDeletePost = (id: string, title: string) => {
+    if (!window.confirm(`Delete post "${title}"? This cannot be undone.`)) return;
+    deletePost({ slug, id }, {
+      onSuccess: () => {
+        toast({ title: "Post deleted" });
+        queryClient.invalidateQueries({ queryKey: getGetClubAdminDashboardQueryKey(slug) });
+        queryClient.invalidateQueries({ queryKey: getGetClubQueryKey(slug) });
+      },
+      onError: () => toast({ title: "Failed to delete post", variant: "destructive" }),
+    });
+  };
+
+  const handleDeleteNotice = (id: string, title: string) => {
+    if (!window.confirm(`Delete notice "${title}"? This cannot be undone.`)) return;
+    deleteNotice({ id }, {
+      onSuccess: () => {
+        toast({ title: "Notice deleted" });
+        queryClient.invalidateQueries({ queryKey: getGetClubAdminDashboardQueryKey(slug) });
+      },
+      onError: () => toast({ title: "Failed to delete notice", variant: "destructive" }),
     });
   };
 
@@ -474,14 +515,24 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
               <div className="grid gap-3">
                 {pendingEvents.map(event => (
                   <Card key={event.id} className="border-yellow-200 bg-yellow-50/30">
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div>
-                        <h4 className="font-bold">{event.title}</h4>
+                    <CardContent className="p-4 flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold truncate">{event.title}</h4>
                         <p className="text-xs text-muted-foreground mt-1">
                           {format(new Date(event.startsAt), 'MMM d, yyyy h:mm a')} • {event.venue}
                         </p>
                       </div>
-                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteEvent(event.id, event.title)}
+                        >
+                          <Trash2Icon className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -496,9 +547,19 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                 {upcomingEvents.map(event => (
                   <Card key={event.id}>
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-lg leading-tight line-clamp-1">{event.title}</h4>
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 shrink-0">Approved</Badge>
+                      <div className="flex justify-between items-start mb-2 gap-2">
+                        <h4 className="font-bold text-lg leading-tight line-clamp-1 flex-1 min-w-0">{event.title}</h4>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">Approved</Badge>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteEvent(event.id, event.title)}
+                          >
+                            <Trash2Icon className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="space-y-1 text-sm text-muted-foreground mt-3">
                         <p className="flex items-center gap-2"><CalendarIcon className="h-3.5 w-3.5" /> {format(new Date(event.startsAt), 'MMM d, yyyy h:mm a')}</p>
@@ -560,7 +621,17 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                   <Card key={post.id} className="overflow-hidden">
                     {post.imageUrl && <div className="h-32 w-full bg-muted"><img src={post.imageUrl} className="w-full h-full object-cover" alt="" /></div>}
                     <CardContent className="p-4">
-                      <h4 className="font-bold mb-1">{post.title}</h4>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h4 className="font-bold flex-1 min-w-0">{post.title}</h4>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeletePost(post.id, post.title)}
+                        >
+                          <Trash2Icon className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground mb-2">{format(new Date(post.createdAt), 'MMM d, yyyy')} • By {post.authorName}</p>
                       <p className="text-sm line-clamp-2">{post.body}</p>
                     </CardContent>
@@ -621,13 +692,23 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="font-bold text-sm">{notice.title}</h4>
-                        {notice.status === "pending" && (
-                          <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-100 shrink-0 text-xs">Pending</Badge>
-                        )}
-                        {notice.status === "rejected" && (
-                          <Badge variant="outline" className="text-red-700 border-red-300 bg-red-100 shrink-0 text-xs">Rejected</Badge>
-                        )}
+                        <h4 className="font-bold text-sm flex-1 min-w-0">{notice.title}</h4>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {notice.status === "pending" && (
+                            <Badge variant="outline" className="text-yellow-700 border-yellow-300 bg-yellow-100 text-xs">Pending</Badge>
+                          )}
+                          {notice.status === "rejected" && (
+                            <Badge variant="outline" className="text-red-700 border-red-300 bg-red-100 text-xs">Rejected</Badge>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteNotice(notice.id, notice.title)}
+                          >
+                            <Trash2Icon className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">{format(new Date(notice.publishAt), 'MMM d, yyyy')}</p>
                       <p className="text-sm">{notice.body}</p>

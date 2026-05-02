@@ -137,12 +137,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Hint card */}
-          <div className="mt-4 text-center">
-            <p className="text-xs text-white/30">
-              Demo: <span className="text-white/50 font-mono">admin / admin123</span> (System Overseer)
-            </p>
-          </div>
         </div>
       </div>
     </Layout>

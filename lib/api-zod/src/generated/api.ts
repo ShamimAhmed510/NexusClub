@@ -24,7 +24,7 @@ export const LoginBody = zod.object({
 
 export const LoginResponse = zod.object({
   user: zod.object({
-    id: zod.number(),
+    id: zod.string(),
     username: zod.string(),
     fullName: zod.string(),
     email: zod.string(),
@@ -57,7 +57,7 @@ export const RegisterBody = zod.object({
  */
 export const GetCurrentUserResponse = zod.object({
   user: zod.object({
-    id: zod.number(),
+    id: zod.string(),
     username: zod.string(),
     fullName: zod.string(),
     email: zod.string(),
@@ -75,7 +75,7 @@ export const GetCurrentUserResponse = zod.object({
  * @summary List all clubs
  */
 export const ListClubsResponseItem = zod.object({
-  id: zod.number(),
+  id: zod.string(),
   slug: zod.string(),
   name: zod.string(),
   category: zod.string(),
@@ -115,7 +115,7 @@ export const GetClubParams = zod.object({
 
 export const GetClubResponse = zod.object({
   club: zod.object({
-    id: zod.number(),
+    id: zod.string(),
     slug: zod.string(),
     name: zod.string(),
     category: zod.string(),
@@ -132,9 +132,9 @@ export const GetClubResponse = zod.object({
   }),
   leadership: zod.array(
     zod.object({
-      id: zod.number(),
-      userId: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      userId: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       fullName: zod.string(),
@@ -146,9 +146,9 @@ export const GetClubResponse = zod.object({
   ),
   members: zod.array(
     zod.object({
-      id: zod.number(),
-      userId: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      userId: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       fullName: zod.string(),
@@ -160,8 +160,8 @@ export const GetClubResponse = zod.object({
   ),
   upcomingEvents: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       title: zod.string(),
@@ -178,8 +178,8 @@ export const GetClubResponse = zod.object({
   ),
   pastEvents: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       title: zod.string(),
@@ -196,8 +196,8 @@ export const GetClubResponse = zod.object({
   ),
   posts: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       title: zod.string(),
@@ -209,8 +209,8 @@ export const GetClubResponse = zod.object({
   ),
   notices: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number().nullish(),
+      id: zod.string(),
+      clubId: zod.string().nullish(),
       clubSlug: zod.string().nullish(),
       clubName: zod.string().nullish(),
       title: zod.string(),
@@ -225,8 +225,8 @@ export const GetClubResponse = zod.object({
   ),
   achievements: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       url: zod.string(),
       caption: zod.string().nullish(),
@@ -236,8 +236,8 @@ export const GetClubResponse = zod.object({
   ),
   gallery: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       url: zod.string(),
       caption: zod.string().nullish(),
@@ -250,8 +250,8 @@ export const GetClubResponse = zod.object({
       zod.object({
         status: zod.enum(["none", "pending", "approved", "rejected"]),
         role: zod.string().nullish(),
-        membershipId: zod.number().nullish(),
-        requestId: zod.number().nullish(),
+        membershipId: zod.string().nullish(),
+        requestId: zod.string().nullish(),
       }),
       zod.null(),
     ])
@@ -279,7 +279,7 @@ export const UpdateClubBody = zod.object({
 });
 
 export const UpdateClubResponse = zod.object({
-  id: zod.number(),
+  id: zod.string(),
   slug: zod.string(),
   name: zod.string(),
   category: zod.string(),
@@ -300,9 +300,9 @@ export const ListClubMembersParams = zod.object({
 });
 
 export const ListClubMembersResponseItem = zod.object({
-  id: zod.number(),
-  userId: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  userId: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   fullName: zod.string(),
@@ -332,9 +332,9 @@ export const ListJoinRequestsParams = zod.object({
 });
 
 export const ListJoinRequestsResponseItem = zod.object({
-  id: zod.number(),
-  userId: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  userId: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   fullName: zod.string(),
@@ -352,7 +352,7 @@ export const ListJoinRequestsResponse = zod.array(ListJoinRequestsResponseItem);
  * @summary Approve or reject a join request
  */
 export const DecideJoinRequestParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce.string(),
 });
 
 export const DecideJoinRequestBody = zod.object({
@@ -360,9 +360,9 @@ export const DecideJoinRequestBody = zod.object({
 });
 
 export const DecideJoinRequestResponse = zod.object({
-  id: zod.number(),
-  userId: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  userId: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   fullName: zod.string(),
@@ -379,7 +379,7 @@ export const DecideJoinRequestResponse = zod.object({
  * @summary Update a member's role within a club
  */
 export const UpdateMemberRoleParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce.string(),
 });
 
 export const UpdateMemberRoleBody = zod.object({
@@ -387,9 +387,9 @@ export const UpdateMemberRoleBody = zod.object({
 });
 
 export const UpdateMemberRoleResponse = zod.object({
-  id: zod.number(),
-  userId: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  userId: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   fullName: zod.string(),
@@ -407,8 +407,8 @@ export const ListEventsQueryParams = zod.object({
 });
 
 export const ListEventsResponseItem = zod.object({
-  id: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   title: zod.string(),
@@ -429,8 +429,8 @@ export const ListClubEventsParams = zod.object({
 });
 
 export const ListClubEventsResponseItem = zod.object({
-  id: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   title: zod.string(),
@@ -461,13 +461,13 @@ export const CreateEventBody = zod.object({
 });
 
 export const GetEventParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce.string(),
 });
 
 export const GetEventResponse = zod.object({
   event: zod.object({
-    id: zod.number(),
-    clubId: zod.number(),
+    id: zod.string(),
+    clubId: zod.string(),
     clubSlug: zod.string(),
     clubName: zod.string(),
     title: zod.string(),
@@ -483,7 +483,7 @@ export const GetEventResponse = zod.object({
   }),
   attendees: zod.array(
     zod.object({
-      id: zod.number(),
+      id: zod.string(),
       username: zod.string(),
       fullName: zod.string(),
       email: zod.string(),
@@ -498,12 +498,12 @@ export const GetEventResponse = zod.object({
 });
 
 export const ApproveEventParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce.string(),
 });
 
 export const ApproveEventResponse = zod.object({
-  id: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   title: zod.string(),
@@ -519,7 +519,7 @@ export const ApproveEventResponse = zod.object({
 });
 
 export const RsvpEventParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce.string(),
 });
 
 export const RsvpEventResponse = zod.object({
@@ -532,8 +532,8 @@ export const ListClubPostsParams = zod.object({
 });
 
 export const ListClubPostsResponseItem = zod.object({
-  id: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   title: zod.string(),
@@ -562,8 +562,8 @@ export const ListNoticesQueryParams = zod.object({
 });
 
 export const ListNoticesResponseItem = zod.object({
-  id: zod.number(),
-  clubId: zod.number().nullish(),
+  id: zod.string(),
+  clubId: zod.string().nullish(),
   clubSlug: zod.string().nullish(),
   clubName: zod.string().nullish(),
   title: zod.string(),
@@ -593,8 +593,8 @@ export const ListClubNoticesParams = zod.object({
 });
 
 export const ListClubNoticesResponseItem = zod.object({
-  id: zod.number(),
-  clubId: zod.number().nullish(),
+  id: zod.string(),
+  clubId: zod.string().nullish(),
   clubSlug: zod.string().nullish(),
   clubName: zod.string().nullish(),
   title: zod.string(),
@@ -617,8 +617,8 @@ export const ListClubMediaQueryParams = zod.object({
 });
 
 export const ListClubMediaResponseItem = zod.object({
-  id: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   url: zod.string(),
   caption: zod.string().nullish(),
@@ -643,7 +643,7 @@ export const AddClubMediaBody = zod.object({
 export const GetStudentDashboardResponse = zod.object({
   joinedClubs: zod.array(
     zod.object({
-      id: zod.number(),
+      id: zod.string(),
       slug: zod.string(),
       name: zod.string(),
       category: zod.string(),
@@ -661,9 +661,9 @@ export const GetStudentDashboardResponse = zod.object({
   ),
   pendingRequests: zod.array(
     zod.object({
-      id: zod.number(),
-      userId: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      userId: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       fullName: zod.string(),
@@ -678,8 +678,8 @@ export const GetStudentDashboardResponse = zod.object({
   ),
   upcomingEvents: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       title: zod.string(),
@@ -696,8 +696,8 @@ export const GetStudentDashboardResponse = zod.object({
   ),
   recentNotices: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number().nullish(),
+      id: zod.string(),
+      clubId: zod.string().nullish(),
       clubSlug: zod.string().nullish(),
       clubName: zod.string().nullish(),
       title: zod.string(),
@@ -718,7 +718,7 @@ export const GetClubAdminDashboardParams = zod.object({
 
 export const GetClubAdminDashboardResponse = zod.object({
   club: zod.object({
-    id: zod.number(),
+    id: zod.string(),
     slug: zod.string(),
     name: zod.string(),
     category: zod.string(),
@@ -735,9 +735,9 @@ export const GetClubAdminDashboardResponse = zod.object({
   }),
   members: zod.array(
     zod.object({
-      id: zod.number(),
-      userId: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      userId: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       fullName: zod.string(),
@@ -749,9 +749,9 @@ export const GetClubAdminDashboardResponse = zod.object({
   ),
   pendingRequests: zod.array(
     zod.object({
-      id: zod.number(),
-      userId: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      userId: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       fullName: zod.string(),
@@ -766,8 +766,8 @@ export const GetClubAdminDashboardResponse = zod.object({
   ),
   upcomingEvents: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       title: zod.string(),
@@ -784,8 +784,8 @@ export const GetClubAdminDashboardResponse = zod.object({
   ),
   pendingEvents: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       title: zod.string(),
@@ -802,8 +802,8 @@ export const GetClubAdminDashboardResponse = zod.object({
   ),
   recentPosts: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       title: zod.string(),
@@ -815,8 +815,8 @@ export const GetClubAdminDashboardResponse = zod.object({
   ),
   notices: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number().nullish(),
+      id: zod.string(),
+      clubId: zod.string().nullish(),
       clubSlug: zod.string().nullish(),
       clubName: zod.string().nullish(),
       title: zod.string(),
@@ -847,7 +847,7 @@ export const GetOverseerDashboardResponse = zod.object({
   }),
   clubsByMembers: zod.array(
     zod.object({
-      id: zod.number(),
+      id: zod.string(),
       slug: zod.string(),
       name: zod.string(),
       category: zod.string(),
@@ -865,8 +865,8 @@ export const GetOverseerDashboardResponse = zod.object({
   ),
   pendingEvents: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       title: zod.string(),
@@ -883,9 +883,9 @@ export const GetOverseerDashboardResponse = zod.object({
   ),
   recentRequests: zod.array(
     zod.object({
-      id: zod.number(),
-      userId: zod.number(),
-      clubId: zod.number(),
+      id: zod.string(),
+      userId: zod.string(),
+      clubId: zod.string(),
       clubSlug: zod.string(),
       clubName: zod.string(),
       fullName: zod.string(),
@@ -900,8 +900,8 @@ export const GetOverseerDashboardResponse = zod.object({
   ),
   recentNotices: zod.array(
     zod.object({
-      id: zod.number(),
-      clubId: zod.number().nullish(),
+      id: zod.string(),
+      clubId: zod.string().nullish(),
       clubSlug: zod.string().nullish(),
       clubName: zod.string().nullish(),
       title: zod.string(),
@@ -920,7 +920,7 @@ export const GetOverseerDashboardResponse = zod.object({
  * @summary List all users (overseer)
  */
 export const ListUsersResponseItem = zod.object({
-  id: zod.number(),
+  id: zod.string(),
   username: zod.string(),
   fullName: zod.string(),
   email: zod.string(),
@@ -934,7 +934,7 @@ export const ListUsersResponseItem = zod.object({
 export const ListUsersResponse = zod.array(ListUsersResponseItem);
 
 export const UpdateUserRoleParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce.string(),
 });
 
 export const UpdateUserRoleBody = zod.object({
@@ -942,7 +942,7 @@ export const UpdateUserRoleBody = zod.object({
 });
 
 export const UpdateUserRoleResponse = zod.object({
-  id: zod.number(),
+  id: zod.string(),
   username: zod.string(),
   fullName: zod.string(),
   email: zod.string(),
@@ -958,7 +958,7 @@ export const UpdateUserRoleResponse = zod.object({
  * @summary Assign a user as admin of a club (overseer)
  */
 export const AssignClubAdminParams = zod.object({
-  id: zod.coerce.number(),
+  id: zod.coerce.string(),
 });
 
 export const AssignClubAdminBody = zod.object({
@@ -967,9 +967,9 @@ export const AssignClubAdminBody = zod.object({
 });
 
 export const AssignClubAdminResponse = zod.object({
-  id: zod.number(),
-  userId: zod.number(),
-  clubId: zod.number(),
+  id: zod.string(),
+  userId: zod.string(),
+  clubId: zod.string(),
   clubSlug: zod.string(),
   clubName: zod.string(),
   fullName: zod.string(),

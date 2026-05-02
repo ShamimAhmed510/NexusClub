@@ -12,7 +12,7 @@ export interface ViewerMembership {
   /** @nullable */
   role?: string | null;
   /** @nullable */
-  membershipId?: number | null;
+  membershipId?: string | null;
   /** @nullable */
-  requestId?: number | null;
+  requestId?: string | null;
 }

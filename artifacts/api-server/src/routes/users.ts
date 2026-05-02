@@ -1,16 +1,15 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, asc, eq } from "drizzle-orm";
-import {
-  db,
-  usersTable,
-  clubsTable,
-  membershipsTable,
-} from "@workspace/db";
+import mongoose from "mongoose";
+import { User, Club, Membership } from "@workspace/db";
 import { UpdateUserRoleBody, AssignClubAdminBody } from "@workspace/api-zod";
-import { getCurrentUser, requireAuth } from "../lib/auth";
-import { serializeUserPublic, serializeMember } from "../lib/serializers";
+import { getCurrentUser, requireAuth } from "../lib/auth.js";
+import { serializeUserPublic, serializeMember } from "../lib/serializers.js";
 
 const router: IRouter = Router();
+
+function s(id: any): string {
+  return id.toString();
+}
 
 router.get("/users", requireAuth, async (req: Request, res: Response) => {
   const user = await getCurrentUser(req);
@@ -18,21 +17,36 @@ router.get("/users", requireAuth, async (req: Request, res: Response) => {
     res.status(403).json({ error: "Forbidden" });
     return;
   }
-  const rows = await db.select().from(usersTable).orderBy(asc(usersTable.id));
-  res.json(rows.map((u) => serializeUserPublic(u)));
+  const users = await User.find().sort({ createdAt: 1 }).lean();
+  res.json(
+    users.map((u: any) =>
+      serializeUserPublic({
+        id: s(u._id),
+        username: u.username,
+        fullName: u.fullName,
+        email: u.email,
+        role: u.role,
+        studentId: u.studentId ?? null,
+        department: u.department ?? null,
+        batch: u.batch ?? null,
+        avatarUrl: u.avatarUrl ?? null,
+        createdAt: u.createdAt,
+      }),
+    ),
+  );
 });
 
 router.patch(
   "/users/:id/role",
   requireAuth,
   async (req: Request, res: Response) => {
-    const user = await getCurrentUser(req);
-    if (!user || user.role !== "overseer") {
+    const actor = await getCurrentUser(req);
+    if (!actor || actor.role !== "overseer") {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const id = Number(req.params.id as string);
-    if (!Number.isFinite(id)) {
+    const id = req.params.id as string;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
     }
@@ -41,16 +55,29 @@ router.patch(
       res.status(400).json({ error: "Invalid payload" });
       return;
     }
-    const [updated] = await db
-      .update(usersTable)
-      .set({ role: parsed.data.role })
-      .where(eq(usersTable.id, id))
-      .returning();
+    const updated = await User.findByIdAndUpdate(
+      id,
+      { role: parsed.data.role },
+      { new: true },
+    ).lean();
     if (!updated) {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    res.json(serializeUserPublic(updated));
+    res.json(
+      serializeUserPublic({
+        id: s((updated as any)._id),
+        username: (updated as any).username,
+        fullName: (updated as any).fullName,
+        email: (updated as any).email,
+        role: (updated as any).role,
+        studentId: (updated as any).studentId ?? null,
+        department: (updated as any).department ?? null,
+        batch: (updated as any).batch ?? null,
+        avatarUrl: (updated as any).avatarUrl ?? null,
+        createdAt: (updated as any).createdAt,
+      }),
+    );
   },
 );
 
@@ -63,8 +90,8 @@ router.post(
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const id = Number(req.params.id as string);
-    if (!Number.isFinite(id)) {
+    const id = req.params.id as string;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
     }
@@ -73,69 +100,52 @@ router.post(
       res.status(400).json({ error: "Invalid payload" });
       return;
     }
-    const [u] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, id))
-      .limit(1);
+
+    const u = await User.findById(id).lean();
     if (!u) {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, parsed.data.clubSlug))
-      .limit(1);
+    const club = await Club.findOne({ slug: parsed.data.clubSlug }).lean();
     if (!club) {
       res.status(404).json({ error: "Club not found" });
       return;
     }
-    const [existing] = await db
-      .select()
-      .from(membershipsTable)
-      .where(
-        and(
-          eq(membershipsTable.userId, u.id),
-          eq(membershipsTable.clubId, club.id),
-        ),
-      )
-      .limit(1);
-    let row;
+
+    const existing = await Membership.findOne({ userId: id, clubId: s((club as any)._id) }).lean();
+    let row: any;
     if (existing) {
-      [row] = await db
-        .update(membershipsTable)
-        .set({ role: parsed.data.role })
-        .where(eq(membershipsTable.id, existing.id))
-        .returning();
+      row = await Membership.findByIdAndUpdate(
+        (existing as any)._id,
+        { role: parsed.data.role },
+        { new: true },
+      ).lean();
     } else {
-      [row] = await db
-        .insert(membershipsTable)
-        .values({
-          userId: u.id,
-          clubId: club.id,
-          role: parsed.data.role,
-        })
-        .returning();
+      row = await Membership.create({
+        userId: id,
+        clubId: s((club as any)._id),
+        role: parsed.data.role,
+        joinedAt: new Date(),
+      });
+      row = row.toObject();
     }
-    if (!row) {
-      res.status(500).json({ error: "Failed to assign" });
-      return;
+
+    if ((u as any).role === "student" && parsed.data.role !== "member") {
+      await User.findByIdAndUpdate(id, { role: "club_admin" });
     }
-    if (u.role === "student" && parsed.data.role !== "member") {
-      await db
-        .update(usersTable)
-        .set({ role: "club_admin" })
-        .where(eq(usersTable.id, u.id));
-    }
+
     res.json(
       serializeMember({
-        ...row,
-        fullName: u.fullName,
-        email: u.email,
-        avatarUrl: u.avatarUrl,
-        clubSlug: club.slug,
-        clubName: club.name,
+        id: s(row._id),
+        userId: s(row.userId),
+        clubId: s(row.clubId),
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        fullName: (u as any).fullName,
+        email: (u as any).email,
+        avatarUrl: (u as any).avatarUrl ?? null,
+        role: row.role,
+        joinedAt: row.joinedAt ?? new Date(),
       }),
     );
   },

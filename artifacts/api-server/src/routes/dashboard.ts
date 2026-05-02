@@ -1,27 +1,48 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, asc, desc, eq, inArray, gte, sql } from "drizzle-orm";
-import {
-  db,
-  clubsTable,
-  membershipsTable,
-  joinRequestsTable,
-  eventsTable,
-  eventRsvpsTable,
-  postsTable,
-  noticesTable,
-  usersTable,
-} from "@workspace/db";
-import { getCurrentUser, requireAuth } from "../lib/auth";
+import { Club, Event, EventRsvp, JoinRequest, Membership, Notice, Post, User } from "@workspace/db";
+import { getCurrentUser, requireAuth } from "../lib/auth.js";
 import {
   serializeClub,
-  serializeJoinRequest,
   serializeEvent,
-  serializeNotice,
+  serializeJoinRequest,
   serializeMember,
+  serializeNotice,
   serializePost,
-} from "../lib/serializers";
+} from "../lib/serializers.js";
 
 const router: IRouter = Router();
+
+function s(id: any): string {
+  return id.toString();
+}
+
+async function getClubWithCounts(doc: any) {
+  const clubId = s(doc._id);
+  const [memberCount, eventCount] = await Promise.all([
+    Membership.countDocuments({ clubId }),
+    Event.countDocuments({ clubId, status: "approved" }),
+  ]);
+  return serializeClub({
+    id: clubId,
+    slug: doc.slug,
+    name: doc.name,
+    category: doc.category,
+    shortDescription: doc.shortDescription,
+    description: doc.description,
+    logoUrl: doc.logoUrl ?? null,
+    coverUrl: doc.coverUrl ?? null,
+    accentColor: doc.accentColor,
+    websiteUrl: doc.websiteUrl ?? null,
+    facebookUrl: doc.facebookUrl ?? null,
+    instagramUrl: doc.instagramUrl ?? null,
+    memberCount,
+    eventCount,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// STUDENT DASHBOARD
+// ─────────────────────────────────────────────────────────────
 
 router.get(
   "/dashboard/student",
@@ -32,109 +53,136 @@ router.get(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const memberships = await db
-      .select({ m: membershipsTable, c: clubsTable })
-      .from(membershipsTable)
-      .innerJoin(clubsTable, eq(clubsTable.id, membershipsTable.clubId))
-      .where(eq(membershipsTable.userId, user.id));
-    const clubIds = memberships.map((r) => r.c.id);
-    const memberCounts = clubIds.length
-      ? await db
-          .select({
-            clubId: membershipsTable.clubId,
-            n: sql<number>`count(*)::int`,
-          })
-          .from(membershipsTable)
-          .where(inArray(membershipsTable.clubId, clubIds))
-          .groupBy(membershipsTable.clubId)
-      : [];
-    const eventCounts = clubIds.length
-      ? await db
-          .select({
-            clubId: eventsTable.clubId,
-            n: sql<number>`count(*)::int`,
-          })
-          .from(eventsTable)
-          .where(
-            and(
-              inArray(eventsTable.clubId, clubIds),
-              eq(eventsTable.status, "approved"),
-            ),
-          )
-          .groupBy(eventsTable.clubId)
-      : [];
-    const memMap = new Map(memberCounts.map((c) => [c.clubId, Number(c.n)]));
-    const evMap = new Map(eventCounts.map((c) => [c.clubId, Number(c.n)]));
-    const joinedClubs = memberships.map((r) =>
-      serializeClub({
-        ...r.c,
-        memberCount: memMap.get(r.c.id) ?? 0,
-        eventCount: evMap.get(r.c.id) ?? 0,
-      }),
-    );
 
-    const pendReqRows = await db
-      .select({ r: joinRequestsTable, c: clubsTable, u: usersTable })
-      .from(joinRequestsTable)
-      .innerJoin(clubsTable, eq(clubsTable.id, joinRequestsTable.clubId))
-      .innerJoin(usersTable, eq(usersTable.id, joinRequestsTable.userId))
-      .where(
-        and(
-          eq(joinRequestsTable.userId, user.id),
-          eq(joinRequestsTable.status, "pending"),
-        ),
-      )
-      .orderBy(desc(joinRequestsTable.createdAt));
-    const pendingRequests = pendReqRows.map((row) =>
-      serializeJoinRequest({
-        ...row.r,
-        clubSlug: row.c.slug,
-        clubName: row.c.name,
-        fullName: row.u.fullName,
-        email: row.u.email,
-      }),
-    );
+    const [memberships, pendingJoinReqs] = await Promise.all([
+      Membership.find({ userId: user.id }).lean(),
+      JoinRequest.find({ userId: user.id, status: "pending" }).lean(),
+    ]);
+
+    const joinedClubIds = memberships.map((m: any) => m.clubId);
+    const pendingClubIds = pendingJoinReqs.map((r: any) => r.clubId);
+
+    const [joinedClubDocs, pendingClubDocs] = await Promise.all([
+      Club.find({ _id: { $in: joinedClubIds } }).lean(),
+      Club.find({ _id: { $in: pendingClubIds } }).lean(),
+    ]);
+
+    const joinedClubs = await Promise.all(joinedClubDocs.map(getClubWithCounts));
+
+    const pendingClubMap = new Map(pendingClubDocs.map((c: any) => [s(c._id), c]));
+    const pendingRequests = pendingJoinReqs.map((r: any) => {
+      const club: any = pendingClubMap.get(s(r.clubId));
+      return serializeJoinRequest({
+        id: s(r._id),
+        userId: s(r.userId),
+        clubId: s(r.clubId),
+        clubSlug: club?.slug ?? "",
+        clubName: club?.name ?? "",
+        fullName: user.fullName,
+        email: user.email,
+        studentId: user.studentId,
+        department: user.department,
+        batch: null,
+        message: r.message ?? null,
+        status: r.status,
+        createdAt: r.createdAt,
+      });
+    });
 
     const now = new Date();
-    const rsvped = await db
-      .select({ e: eventsTable, c: clubsTable })
-      .from(eventRsvpsTable)
-      .innerJoin(eventsTable, eq(eventsTable.id, eventRsvpsTable.eventId))
-      .innerJoin(clubsTable, eq(clubsTable.id, eventsTable.clubId))
-      .where(
-        and(
-          eq(eventRsvpsTable.userId, user.id),
-          gte(eventsTable.startsAt, now),
-        ),
-      )
-      .orderBy(asc(eventsTable.startsAt));
-    const upcomingEvents = rsvped.map((r) =>
-      serializeEvent({
-        ...r.e,
-        clubSlug: r.c.slug,
-        clubName: r.c.name,
-        rsvpCount: 0,
-        viewerHasRsvp: true,
-      }),
-    );
+    const upcomingEventDocs = await Event.find({
+      clubId: { $in: joinedClubIds },
+      status: "approved",
+      startsAt: { $gte: now },
+    })
+      .sort({ startsAt: 1 })
+      .limit(10)
+      .lean();
 
-    const recentNoticeRows = await db
-      .select({ n: noticesTable, c: clubsTable })
-      .from(noticesTable)
-      .leftJoin(clubsTable, eq(clubsTable.id, noticesTable.clubId))
-      .orderBy(desc(noticesTable.pinned), desc(noticesTable.publishAt))
-      .limit(10);
-    const recentNotices = recentNoticeRows.map((r) =>
-      serializeNotice({
-        ...r.n,
-        clubSlug: r.c?.slug ?? null,
-        clubName: r.c?.name ?? null,
-      }),
-    );
+    const eventIds = upcomingEventDocs.map((e: any) => e._id);
+    const evClubIds = [...new Set(upcomingEventDocs.map((e: any) => s(e.clubId)))];
+
+    const [rsvpAgg, viewerRsvpRows, eventClubDocs] = await Promise.all([
+      eventIds.length
+        ? EventRsvp.aggregate([
+            { $match: { eventId: { $in: eventIds } } },
+            { $group: { _id: "$eventId", n: { $sum: 1 } } },
+          ])
+        : Promise.resolve([]),
+      eventIds.length
+        ? EventRsvp.find({ userId: user.id, eventId: { $in: eventIds } }).lean()
+        : Promise.resolve([]),
+      evClubIds.length ? Club.find({ _id: { $in: evClubIds } }).lean() : Promise.resolve([]),
+    ]);
+
+    const rsvpCounts = new Map<string, number>(rsvpAgg.map((r: any) => [s(r._id), r.n]));
+    const viewerRsvps = new Set<string>((viewerRsvpRows as any[]).map((r: any) => s(r.eventId)));
+    const evClubMap = new Map((eventClubDocs as any[]).map((c: any) => [s(c._id), c]));
+
+    const upcomingEvents = upcomingEventDocs.map((e: any) => {
+      const club: any = evClubMap.get(s(e.clubId));
+      return serializeEvent({
+        id: s(e._id),
+        clubId: s(e.clubId),
+        clubSlug: club?.slug ?? "",
+        clubName: club?.name ?? "",
+        title: e.title,
+        description: e.description,
+        startsAt: e.startsAt,
+        endsAt: e.endsAt ?? null,
+        venue: e.venue,
+        capacity: e.capacity ?? null,
+        coverUrl: e.coverUrl ?? null,
+        status: e.status,
+        rsvpCount: rsvpCounts.get(s(e._id)) ?? 0,
+        viewerHasRsvp: viewerRsvps.has(s(e._id)),
+      });
+    });
+
+    const recentNoticeDocs = await Notice.find({
+      $or: [{ scope: "university" }, { clubId: { $in: joinedClubIds } }],
+      publishAt: { $lte: now },
+    })
+      .sort({ pinned: -1, publishAt: -1 })
+      .limit(10)
+      .lean();
+
+    const noticeClubIds = [
+      ...new Set(
+        recentNoticeDocs.filter((n: any) => n.clubId).map((n: any) => s(n.clubId)),
+      ),
+    ];
+    const noticeClubDocs = noticeClubIds.length
+      ? await Club.find({ _id: { $in: noticeClubIds } }).lean()
+      : [];
+    const noticeClubMap = new Map((noticeClubDocs as any[]).map((c: any) => [s(c._id), c]));
+
+    const recentNotices = recentNoticeDocs.map((n: any) => {
+      const club: any = n.clubId ? noticeClubMap.get(s(n.clubId)) : null;
+      return serializeNotice({
+        id: s(n._id),
+        clubId: n.clubId ? s(n.clubId) : null,
+        clubSlug: club?.slug ?? null,
+        clubName: club?.name ?? null,
+        authorId: s(n.authorId),
+        title: n.title,
+        body: n.body,
+        scope: n.scope,
+        pinned: n.pinned,
+        publishAt: n.publishAt,
+        expireAt: n.expireAt ?? null,
+        audienceRole: n.audienceRole ?? null,
+        createdAt: n.createdAt,
+      });
+    });
 
     res.json({ joinedClubs, pendingRequests, upcomingEvents, recentNotices });
   },
 );
+
+// ─────────────────────────────────────────────────────────────
+// CLUB ADMIN DASHBOARD
+// ─────────────────────────────────────────────────────────────
 
 router.get(
   "/dashboard/club-admin/:slug",
@@ -146,161 +194,175 @@ router.get(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
+    const club = await Club.findOne({ slug }).lean();
     if (!club) {
       res.status(404).json({ error: "Club not found" });
       return;
     }
-    if (user.role !== "overseer") {
-      const [m] = await db
-        .select()
-        .from(membershipsTable)
-        .where(
-          and(
-            eq(membershipsTable.userId, user.id),
-            eq(membershipsTable.clubId, club.id),
-          ),
-        )
-        .limit(1);
-      if (
-        !m ||
-        !["president", "vice_president", "secretary"].includes(m.role)
-      ) {
-        res.status(403).json({ error: "Forbidden" });
-        return;
-      }
-    }
-    const [{ n: memberCount }] = (await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(membershipsTable)
-      .where(eq(membershipsTable.clubId, club.id))) as Array<{ n: number }>;
-    const [{ n: eventCount }] = (await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(eventsTable)
-      .where(
-        and(eq(eventsTable.clubId, club.id), eq(eventsTable.status, "approved")),
-      )) as Array<{ n: number }>;
-    const memberRows = await db
-      .select({ m: membershipsTable, u: usersTable })
-      .from(membershipsTable)
-      .innerJoin(usersTable, eq(usersTable.id, membershipsTable.userId))
-      .where(eq(membershipsTable.clubId, club.id))
-      .orderBy(asc(membershipsTable.joinedAt));
-    const members = memberRows.map((r) =>
-      serializeMember({
-        ...r.m,
-        fullName: r.u.fullName,
-        email: r.u.email,
-        avatarUrl: r.u.avatarUrl,
-        clubSlug: club.slug,
-        clubName: club.name,
-      }),
-    );
+    const clubId = s((club as any)._id);
+    const adminRoles = ["president", "vice_president", "secretary"];
+    const mem = await Membership.findOne({ userId: user.id, clubId }).lean();
 
-    const reqRows = await db
-      .select({ r: joinRequestsTable, u: usersTable })
-      .from(joinRequestsTable)
-      .innerJoin(usersTable, eq(usersTable.id, joinRequestsTable.userId))
-      .where(
-        and(
-          eq(joinRequestsTable.clubId, club.id),
-          eq(joinRequestsTable.status, "pending"),
-        ),
-      )
-      .orderBy(desc(joinRequestsTable.createdAt));
-    const pendingRequests = reqRows.map((row) =>
-      serializeJoinRequest({
-        ...row.r,
-        clubSlug: club.slug,
-        clubName: club.name,
-        fullName: row.u.fullName,
-        email: row.u.email,
-      }),
-    );
+    if (!mem && user.role !== "overseer") {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    if (mem && !adminRoles.includes((mem as any).role) && user.role !== "overseer") {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
 
     const now = new Date();
-    const upcoming = await db
-      .select()
-      .from(eventsTable)
-      .where(
-        and(
-          eq(eventsTable.clubId, club.id),
-          eq(eventsTable.status, "approved"),
-          gte(eventsTable.startsAt, now),
-        ),
-      )
-      .orderBy(asc(eventsTable.startsAt));
-    const upcomingEvents = upcoming.map((e) =>
+    const [memberships, pendingReqs, upcomingEv, pendingEv, recentPosts, notices] =
+      await Promise.all([
+        Membership.find({ clubId }).sort({ joinedAt: 1 }).lean(),
+        JoinRequest.find({ clubId, status: "pending" }).sort({ createdAt: 1 }).lean(),
+        Event.find({ clubId, status: "approved", startsAt: { $gte: now } })
+          .sort({ startsAt: 1 })
+          .limit(5)
+          .lean(),
+        Event.find({ clubId, status: "pending" }).sort({ createdAt: -1 }).lean(),
+        Post.find({ clubId }).sort({ createdAt: -1 }).limit(5).lean(),
+        Notice.find({ clubId }).sort({ pinned: -1, publishAt: -1 }).limit(10).lean(),
+      ]);
+
+    const memberUserIds = memberships.map((m: any) => m.userId);
+    const reqUserIds = pendingReqs.map((r: any) => r.userId);
+    const postAuthorIds = recentPosts.map((p: any) => p.authorId);
+    const allUserIds = [...new Set([...memberUserIds, ...reqUserIds, ...postAuthorIds].map(s))];
+    const userDocs = await User.find({ _id: { $in: allUserIds } }).lean();
+    const uMap = new Map(userDocs.map((u: any) => [s(u._id), u]));
+
+    const members = memberships.map((m: any) => {
+      const u: any = uMap.get(s(m.userId));
+      return serializeMember({
+        id: s(m._id),
+        userId: s(m.userId),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        fullName: u?.fullName ?? "",
+        email: u?.email ?? "",
+        avatarUrl: u?.avatarUrl ?? null,
+        role: m.role,
+        joinedAt: m.joinedAt,
+      });
+    });
+
+    const pendingRequests = pendingReqs.map((r: any) => {
+      const u: any = uMap.get(s(r.userId));
+      return serializeJoinRequest({
+        id: s(r._id),
+        userId: s(r.userId),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        fullName: u?.fullName ?? "",
+        email: u?.email ?? "",
+        studentId: u?.studentId ?? null,
+        department: u?.department ?? null,
+        batch: u?.batch ?? null,
+        message: r.message ?? null,
+        status: r.status,
+        createdAt: r.createdAt,
+      });
+    });
+
+    const evIds = [...upcomingEv, ...pendingEv].map((e: any) => e._id);
+    const rsvpAgg = evIds.length
+      ? await EventRsvp.aggregate([
+          { $match: { eventId: { $in: evIds } } },
+          { $group: { _id: "$eventId", n: { $sum: 1 } } },
+        ])
+      : [];
+    const rsvpCounts = new Map<string, number>(rsvpAgg.map((r: any) => [s(r._id), r.n]));
+
+    const buildEvent = (e: any) =>
       serializeEvent({
-        ...e,
-        clubSlug: club.slug,
-        clubName: club.name,
-        rsvpCount: 0,
+        id: s(e._id),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        title: e.title,
+        description: e.description,
+        startsAt: e.startsAt,
+        endsAt: e.endsAt ?? null,
+        venue: e.venue,
+        capacity: e.capacity ?? null,
+        coverUrl: e.coverUrl ?? null,
+        status: e.status,
+        rsvpCount: rsvpCounts.get(s(e._id)) ?? 0,
         viewerHasRsvp: false,
-      }),
-    );
-    const pending = await db
-      .select()
-      .from(eventsTable)
-      .where(
-        and(eq(eventsTable.clubId, club.id), eq(eventsTable.status, "pending")),
-      )
-      .orderBy(asc(eventsTable.startsAt));
-    const pendingEvents = pending.map((e) =>
-      serializeEvent({
-        ...e,
-        clubSlug: club.slug,
-        clubName: club.name,
-        rsvpCount: 0,
-        viewerHasRsvp: false,
+      });
+
+    const posts = recentPosts.map((p: any) => {
+      const u: any = uMap.get(s(p.authorId));
+      return serializePost({
+        id: s(p._id),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        title: p.title,
+        body: p.body,
+        imageUrl: p.imageUrl ?? null,
+        authorName: u?.fullName ?? "",
+        createdAt: p.createdAt,
+      });
+    });
+
+    const noticesSerialized = notices.map((n: any) =>
+      serializeNotice({
+        id: s(n._id),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        authorId: s(n.authorId),
+        title: n.title,
+        body: n.body,
+        scope: n.scope,
+        pinned: n.pinned,
+        publishAt: n.publishAt,
+        expireAt: n.expireAt ?? null,
+        audienceRole: n.audienceRole ?? null,
+        createdAt: n.createdAt,
       }),
     );
 
-    const postRows = await db
-      .select({ p: postsTable, u: usersTable })
-      .from(postsTable)
-      .innerJoin(usersTable, eq(usersTable.id, postsTable.authorId))
-      .where(eq(postsTable.clubId, club.id))
-      .orderBy(desc(postsTable.createdAt))
-      .limit(10);
-    const recentPosts = postRows.map((r) =>
-      serializePost({
-        ...r.p,
-        clubSlug: club.slug,
-        clubName: club.name,
-        authorName: r.u.fullName,
-      }),
-    );
-
-    const noticeRows = await db
-      .select()
-      .from(noticesTable)
-      .where(eq(noticesTable.clubId, club.id))
-      .orderBy(desc(noticesTable.pinned), desc(noticesTable.publishAt))
-      .limit(10);
-    const notices = noticeRows.map((n) =>
-      serializeNotice({ ...n, clubSlug: club.slug, clubName: club.name }),
-    );
+    const [memberCount, eventCount] = await Promise.all([
+      Membership.countDocuments({ clubId }),
+      Event.countDocuments({ clubId, status: "approved" }),
+    ]);
 
     res.json({
       club: serializeClub({
-        ...club,
-        memberCount: Number(memberCount),
-        eventCount: Number(eventCount),
+        id: clubId,
+        slug: (club as any).slug,
+        name: (club as any).name,
+        category: (club as any).category,
+        shortDescription: (club as any).shortDescription,
+        description: (club as any).description,
+        logoUrl: (club as any).logoUrl ?? null,
+        coverUrl: (club as any).coverUrl ?? null,
+        accentColor: (club as any).accentColor,
+        websiteUrl: (club as any).websiteUrl ?? null,
+        facebookUrl: (club as any).facebookUrl ?? null,
+        instagramUrl: (club as any).instagramUrl ?? null,
+        memberCount,
+        eventCount,
       }),
       members,
       pendingRequests,
-      upcomingEvents,
-      pendingEvents,
-      recentPosts,
-      notices,
+      upcomingEvents: upcomingEv.map(buildEvent),
+      pendingEvents: pendingEv.map(buildEvent),
+      recentPosts: posts,
+      notices: noticesSerialized,
     });
   },
 );
+
+// ─────────────────────────────────────────────────────────────
+// OVERSEER DASHBOARD
+// ─────────────────────────────────────────────────────────────
 
 router.get(
   "/dashboard/overseer",
@@ -311,129 +373,163 @@ router.get(
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const [{ n: clubsCount }] = (await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(clubsTable)) as Array<{ n: number }>;
 
-    const roleCountsRows = await db
-      .select({
-        role: usersTable.role,
-        n: sql<number>`count(*)::int`,
-      })
-      .from(usersTable)
-      .groupBy(usersTable.role);
-    const roleMap = new Map(
-      roleCountsRows.map((r) => [r.role, Number(r.n)]),
-    );
+    const now = new Date();
 
-    const [{ n: approvedEvents }] = (await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(eventsTable)
-      .where(eq(eventsTable.status, "approved"))) as Array<{ n: number }>;
-    const [{ n: pendingEventsCount }] = (await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(eventsTable)
-      .where(eq(eventsTable.status, "pending"))) as Array<{ n: number }>;
-    const [{ n: noticesCount }] = (await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(noticesTable)) as Array<{ n: number }>;
-    const [{ n: pendingReqs }] = (await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(joinRequestsTable)
-      .where(eq(joinRequestsTable.status, "pending"))) as Array<{ n: number }>;
+    const [
+      clubs,
+      students,
+      faculty,
+      clubAdmins,
+      approvedEvents,
+      pendingEventsCount,
+      noticesCount,
+      pendingRequests,
+      pendingEventDocs,
+      recentRequestDocs,
+      recentNoticeDocs,
+    ] = await Promise.all([
+      Club.countDocuments(),
+      User.countDocuments({ role: "student" }),
+      User.countDocuments({ role: "faculty" }),
+      User.countDocuments({ role: "club_admin" }),
+      Event.countDocuments({ status: "approved" }),
+      Event.countDocuments({ status: "pending" }),
+      Notice.countDocuments(),
+      JoinRequest.countDocuments({ status: "pending" }),
+      Event.find({ status: "pending" }).sort({ createdAt: -1 }).limit(10).lean(),
+      JoinRequest.find({ status: "pending" }).sort({ createdAt: -1 }).limit(10).lean(),
+      Notice.find({ publishAt: { $lte: now } })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+    ]);
 
-    const totals = {
-      clubs: Number(clubsCount),
-      students: roleMap.get("student") ?? 0,
-      faculty: roleMap.get("faculty") ?? 0,
-      clubAdmins: roleMap.get("club_admin") ?? 0,
-      approvedEvents: Number(approvedEvents),
-      pendingEvents: Number(pendingEventsCount),
-      notices: Number(noticesCount),
-      pendingRequests: Number(pendingReqs),
-    };
+    const pendingEvClubIds = [...new Set(pendingEventDocs.map((e: any) => s(e.clubId)))];
+    const reqClubIds = [...new Set(recentRequestDocs.map((r: any) => s(r.clubId)))];
+    const noticeClubIds = [
+      ...new Set(
+        recentNoticeDocs.filter((n: any) => n.clubId).map((n: any) => s(n.clubId)),
+      ),
+    ];
+    const allRelatedClubIds = [...new Set([...pendingEvClubIds, ...reqClubIds, ...noticeClubIds])];
+    const reqUserIds = recentRequestDocs.map((r: any) => r.userId);
 
-    const allClubs = await db.select().from(clubsTable);
-    const memCounts = await db
-      .select({
-        clubId: membershipsTable.clubId,
-        n: sql<number>`count(*)::int`,
-      })
-      .from(membershipsTable)
-      .groupBy(membershipsTable.clubId);
-    const evCounts = await db
-      .select({
-        clubId: eventsTable.clubId,
-        n: sql<number>`count(*)::int`,
-      })
-      .from(eventsTable)
-      .where(eq(eventsTable.status, "approved"))
-      .groupBy(eventsTable.clubId);
-    const mc = new Map(memCounts.map((r) => [r.clubId, Number(r.n)]));
-    const ec = new Map(evCounts.map((r) => [r.clubId, Number(r.n)]));
-    const clubsByMembers = allClubs
-      .map((c) =>
-        serializeClub({
-          ...c,
-          memberCount: mc.get(c.id) ?? 0,
-          eventCount: ec.get(c.id) ?? 0,
-        }),
-      )
-      .sort((a, b) => b.memberCount - a.memberCount)
-      .slice(0, 8);
+    const [relatedClubs, reqUsers] = await Promise.all([
+      allRelatedClubIds.length
+        ? Club.find({ _id: { $in: allRelatedClubIds } }).lean()
+        : Promise.resolve([]),
+      reqUserIds.length
+        ? User.find({ _id: { $in: reqUserIds } }).lean()
+        : Promise.resolve([]),
+    ]);
+    const clubMap = new Map((relatedClubs as any[]).map((c: any) => [s(c._id), c]));
+    const userMap = new Map((reqUsers as any[]).map((u: any) => [s(u._id), u]));
 
-    const pendingEvtRows = await db
-      .select({ e: eventsTable, c: clubsTable })
-      .from(eventsTable)
-      .innerJoin(clubsTable, eq(clubsTable.id, eventsTable.clubId))
-      .where(eq(eventsTable.status, "pending"))
-      .orderBy(asc(eventsTable.startsAt))
-      .limit(20);
-    const pendingEvents = pendingEvtRows.map((r) =>
-      serializeEvent({
-        ...r.e,
-        clubSlug: r.c.slug,
-        clubName: r.c.name,
+    const pendingEventsSerialized = pendingEventDocs.map((e: any) => {
+      const club: any = clubMap.get(s(e.clubId));
+      return serializeEvent({
+        id: s(e._id),
+        clubId: s(e.clubId),
+        clubSlug: club?.slug ?? "",
+        clubName: club?.name ?? "",
+        title: e.title,
+        description: e.description,
+        startsAt: e.startsAt,
+        endsAt: e.endsAt ?? null,
+        venue: e.venue,
+        capacity: e.capacity ?? null,
+        coverUrl: e.coverUrl ?? null,
+        status: e.status,
         rsvpCount: 0,
         viewerHasRsvp: false,
-      }),
-    );
+      });
+    });
 
-    const recReqRows = await db
-      .select({ r: joinRequestsTable, c: clubsTable, u: usersTable })
-      .from(joinRequestsTable)
-      .innerJoin(clubsTable, eq(clubsTable.id, joinRequestsTable.clubId))
-      .innerJoin(usersTable, eq(usersTable.id, joinRequestsTable.userId))
-      .orderBy(desc(joinRequestsTable.createdAt))
-      .limit(15);
-    const recentRequests = recReqRows.map((row) =>
-      serializeJoinRequest({
-        ...row.r,
-        clubSlug: row.c.slug,
-        clubName: row.c.name,
-        fullName: row.u.fullName,
-        email: row.u.email,
-      }),
-    );
+    const recentRequests = recentRequestDocs.map((r: any) => {
+      const club: any = clubMap.get(s(r.clubId));
+      const u: any = userMap.get(s(r.userId));
+      return serializeJoinRequest({
+        id: s(r._id),
+        userId: s(r.userId),
+        clubId: s(r.clubId),
+        clubSlug: club?.slug ?? "",
+        clubName: club?.name ?? "",
+        fullName: u?.fullName ?? "",
+        email: u?.email ?? "",
+        studentId: u?.studentId ?? null,
+        department: u?.department ?? null,
+        batch: u?.batch ?? null,
+        message: r.message ?? null,
+        status: r.status,
+        createdAt: r.createdAt,
+      });
+    });
 
-    const recNoticeRows = await db
-      .select({ n: noticesTable, c: clubsTable })
-      .from(noticesTable)
-      .leftJoin(clubsTable, eq(clubsTable.id, noticesTable.clubId))
-      .orderBy(desc(noticesTable.publishAt))
-      .limit(10);
-    const recentNotices = recNoticeRows.map((r) =>
-      serializeNotice({
-        ...r.n,
-        clubSlug: r.c?.slug ?? null,
-        clubName: r.c?.name ?? null,
-      }),
-    );
+    const recentNotices = recentNoticeDocs.map((n: any) => {
+      const club: any = n.clubId ? clubMap.get(s(n.clubId)) : null;
+      return serializeNotice({
+        id: s(n._id),
+        clubId: n.clubId ? s(n.clubId) : null,
+        clubSlug: club?.slug ?? null,
+        clubName: club?.name ?? null,
+        authorId: s(n.authorId),
+        title: n.title,
+        body: n.body,
+        scope: n.scope,
+        pinned: n.pinned,
+        publishAt: n.publishAt,
+        expireAt: n.expireAt ?? null,
+        audienceRole: n.audienceRole ?? null,
+        createdAt: n.createdAt,
+      });
+    });
+
+    const allClubs = await Club.find().sort({ name: 1 }).lean();
+    const [memberCounts, eventCounts] = await Promise.all([
+      Membership.aggregate([{ $group: { _id: "$clubId", n: { $sum: 1 } } }]),
+      Event.aggregate([
+        { $match: { status: "approved" } },
+        { $group: { _id: "$clubId", n: { $sum: 1 } } },
+      ]),
+    ]);
+    const memMap = new Map<string, number>(memberCounts.map((r: any) => [s(r._id), r.n]));
+    const evMap = new Map<string, number>(eventCounts.map((r: any) => [s(r._id), r.n]));
+
+    const clubsByMembers = (allClubs as any[])
+      .map((c: any) =>
+        serializeClub({
+          id: s(c._id),
+          slug: c.slug,
+          name: c.name,
+          category: c.category,
+          shortDescription: c.shortDescription,
+          description: c.description,
+          logoUrl: c.logoUrl ?? null,
+          coverUrl: c.coverUrl ?? null,
+          accentColor: c.accentColor,
+          websiteUrl: c.websiteUrl ?? null,
+          facebookUrl: c.facebookUrl ?? null,
+          instagramUrl: c.instagramUrl ?? null,
+          memberCount: memMap.get(s(c._id)) ?? 0,
+          eventCount: evMap.get(s(c._id)) ?? 0,
+        }),
+      )
+      .sort((a, b) => b.memberCount - a.memberCount);
 
     res.json({
-      totals,
+      totals: {
+        clubs,
+        students,
+        faculty,
+        clubAdmins,
+        approvedEvents,
+        pendingEvents: pendingEventsCount,
+        notices: noticesCount,
+        pendingRequests,
+      },
       clubsByMembers,
-      pendingEvents,
+      pendingEvents: pendingEventsSerialized,
       recentRequests,
       recentNotices,
     });

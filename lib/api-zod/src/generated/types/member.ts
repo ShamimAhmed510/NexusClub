@@ -8,9 +8,9 @@
 import type { MemberRole } from "./memberRole";
 
 export interface Member {
-  id: number;
-  userId: number;
-  clubId: number;
+  id: string;
+  userId: string;
+  clubId: string;
   clubSlug: string;
   clubName: string;
   fullName: string;

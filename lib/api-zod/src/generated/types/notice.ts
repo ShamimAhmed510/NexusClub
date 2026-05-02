@@ -8,9 +8,9 @@
 import type { NoticeScope } from "./noticeScope";
 
 export interface Notice {
-  id: number;
+  id: string;
   /** @nullable */
-  clubId?: number | null;
+  clubId?: string | null;
   /** @nullable */
   clubSlug?: string | null;
   /** @nullable */

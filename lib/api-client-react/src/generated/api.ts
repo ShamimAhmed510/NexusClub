@@ -1036,12 +1036,12 @@ export function useListJoinRequests<
 /**
  * @summary Approve or reject a join request
  */
-export const getDecideJoinRequestUrl = (id: number) => {
+export const getDecideJoinRequestUrl = (id: string) => {
   return `/api/join-requests/${id}/decision`;
 };
 
 export const decideJoinRequest = async (
-  id: number,
+  id: string,
   decisionBody: DecisionBody,
   options?: RequestInit,
 ): Promise<JoinRequest> => {
@@ -1060,14 +1060,14 @@ export const getDecideJoinRequestMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof decideJoinRequest>>,
     TError,
-    { id: number; data: BodyType<DecisionBody> },
+    { id: string; data: BodyType<DecisionBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof decideJoinRequest>>,
   TError,
-  { id: number; data: BodyType<DecisionBody> },
+  { id: string; data: BodyType<DecisionBody> },
   TContext
 > => {
   const mutationKey = ["decideJoinRequest"];
@@ -1081,7 +1081,7 @@ export const getDecideJoinRequestMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof decideJoinRequest>>,
-    { id: number; data: BodyType<DecisionBody> }
+    { id: string; data: BodyType<DecisionBody> }
   > = (props) => {
     const { id, data } = props ?? {};
 
@@ -1107,14 +1107,14 @@ export const useDecideJoinRequest = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof decideJoinRequest>>,
     TError,
-    { id: number; data: BodyType<DecisionBody> },
+    { id: string; data: BodyType<DecisionBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof decideJoinRequest>>,
   TError,
-  { id: number; data: BodyType<DecisionBody> },
+  { id: string; data: BodyType<DecisionBody> },
   TContext
 > => {
   return useMutation(getDecideJoinRequestMutationOptions(options));
@@ -1123,12 +1123,12 @@ export const useDecideJoinRequest = <
 /**
  * @summary Update a member's role within a club
  */
-export const getUpdateMemberRoleUrl = (id: number) => {
+export const getUpdateMemberRoleUrl = (id: string) => {
   return `/api/memberships/${id}/role`;
 };
 
 export const updateMemberRole = async (
-  id: number,
+  id: string,
   updateRoleBody: UpdateRoleBody,
   options?: RequestInit,
 ): Promise<Member> => {
@@ -1147,14 +1147,14 @@ export const getUpdateMemberRoleMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateMemberRole>>,
     TError,
-    { id: number; data: BodyType<UpdateRoleBody> },
+    { id: string; data: BodyType<UpdateRoleBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateMemberRole>>,
   TError,
-  { id: number; data: BodyType<UpdateRoleBody> },
+  { id: string; data: BodyType<UpdateRoleBody> },
   TContext
 > => {
   const mutationKey = ["updateMemberRole"];
@@ -1168,7 +1168,7 @@ export const getUpdateMemberRoleMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateMemberRole>>,
-    { id: number; data: BodyType<UpdateRoleBody> }
+    { id: string; data: BodyType<UpdateRoleBody> }
   > = (props) => {
     const { id, data } = props ?? {};
 
@@ -1194,14 +1194,14 @@ export const useUpdateMemberRole = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateMemberRole>>,
     TError,
-    { id: number; data: BodyType<UpdateRoleBody> },
+    { id: string; data: BodyType<UpdateRoleBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof updateMemberRole>>,
   TError,
-  { id: number; data: BodyType<UpdateRoleBody> },
+  { id: string; data: BodyType<UpdateRoleBody> },
   TContext
 > => {
   return useMutation(getUpdateMemberRoleMutationOptions(options));
@@ -1462,12 +1462,12 @@ export const useCreateEvent = <
   return useMutation(getCreateEventMutationOptions(options));
 };
 
-export const getGetEventUrl = (id: number) => {
+export const getGetEventUrl = (id: string) => {
   return `/api/events/${id}`;
 };
 
 export const getEvent = async (
-  id: number,
+  id: string,
   options?: RequestInit,
 ): Promise<EventDetail> => {
   return customFetch<EventDetail>(getGetEventUrl(id), {
@@ -1476,7 +1476,7 @@ export const getEvent = async (
   });
 };
 
-export const getGetEventQueryKey = (id: number) => {
+export const getGetEventQueryKey = (id: string) => {
   return [`/api/events/${id}`] as const;
 };
 
@@ -1484,7 +1484,7 @@ export const getGetEventQueryOptions = <
   TData = Awaited<ReturnType<typeof getEvent>>,
   TError = ErrorType<unknown>,
 >(
-  id: number,
+  id: string,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getEvent>>,
@@ -1521,7 +1521,7 @@ export function useGetEvent<
   TData = Awaited<ReturnType<typeof getEvent>>,
   TError = ErrorType<unknown>,
 >(
-  id: number,
+  id: string,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof getEvent>>,
@@ -1540,12 +1540,12 @@ export function useGetEvent<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getApproveEventUrl = (id: number) => {
+export const getApproveEventUrl = (id: string) => {
   return `/api/events/${id}/approve`;
 };
 
 export const approveEvent = async (
-  id: number,
+  id: string,
   options?: RequestInit,
 ): Promise<Event> => {
   return customFetch<Event>(getApproveEventUrl(id), {
@@ -1561,14 +1561,14 @@ export const getApproveEventMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof approveEvent>>,
     TError,
-    { id: number },
+    { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof approveEvent>>,
   TError,
-  { id: number },
+  { id: string },
   TContext
 > => {
   const mutationKey = ["approveEvent"];
@@ -1582,7 +1582,7 @@ export const getApproveEventMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof approveEvent>>,
-    { id: number }
+    { id: string }
   > = (props) => {
     const { id } = props ?? {};
 
@@ -1605,25 +1605,25 @@ export const useApproveEvent = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof approveEvent>>,
     TError,
-    { id: number },
+    { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof approveEvent>>,
   TError,
-  { id: number },
+  { id: string },
   TContext
 > => {
   return useMutation(getApproveEventMutationOptions(options));
 };
 
-export const getRsvpEventUrl = (id: number) => {
+export const getRsvpEventUrl = (id: string) => {
   return `/api/events/${id}/rsvp`;
 };
 
 export const rsvpEvent = async (
-  id: number,
+  id: string,
   options?: RequestInit,
 ): Promise<RsvpResult> => {
   return customFetch<RsvpResult>(getRsvpEventUrl(id), {
@@ -1639,14 +1639,14 @@ export const getRsvpEventMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof rsvpEvent>>,
     TError,
-    { id: number },
+    { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof rsvpEvent>>,
   TError,
-  { id: number },
+  { id: string },
   TContext
 > => {
   const mutationKey = ["rsvpEvent"];
@@ -1660,7 +1660,7 @@ export const getRsvpEventMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof rsvpEvent>>,
-    { id: number }
+    { id: string }
   > = (props) => {
     const { id } = props ?? {};
 
@@ -1683,14 +1683,14 @@ export const useRsvpEvent = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof rsvpEvent>>,
     TError,
-    { id: number },
+    { id: string },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof rsvpEvent>>,
   TError,
-  { id: number },
+  { id: string },
   TContext
 > => {
   return useMutation(getRsvpEventMutationOptions(options));
@@ -2591,12 +2591,12 @@ export function useListUsers<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-export const getUpdateUserRoleUrl = (id: number) => {
+export const getUpdateUserRoleUrl = (id: string) => {
   return `/api/users/${id}/role`;
 };
 
 export const updateUserRole = async (
-  id: number,
+  id: string,
   updateUserRoleBody: UpdateUserRoleBody,
   options?: RequestInit,
 ): Promise<User> => {
@@ -2615,14 +2615,14 @@ export const getUpdateUserRoleMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateUserRole>>,
     TError,
-    { id: number; data: BodyType<UpdateUserRoleBody> },
+    { id: string; data: BodyType<UpdateUserRoleBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateUserRole>>,
   TError,
-  { id: number; data: BodyType<UpdateUserRoleBody> },
+  { id: string; data: BodyType<UpdateUserRoleBody> },
   TContext
 > => {
   const mutationKey = ["updateUserRole"];
@@ -2636,7 +2636,7 @@ export const getUpdateUserRoleMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateUserRole>>,
-    { id: number; data: BodyType<UpdateUserRoleBody> }
+    { id: string; data: BodyType<UpdateUserRoleBody> }
   > = (props) => {
     const { id, data } = props ?? {};
 
@@ -2659,14 +2659,14 @@ export const useUpdateUserRole = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateUserRole>>,
     TError,
-    { id: number; data: BodyType<UpdateUserRoleBody> },
+    { id: string; data: BodyType<UpdateUserRoleBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof updateUserRole>>,
   TError,
-  { id: number; data: BodyType<UpdateUserRoleBody> },
+  { id: string; data: BodyType<UpdateUserRoleBody> },
   TContext
 > => {
   return useMutation(getUpdateUserRoleMutationOptions(options));
@@ -2675,12 +2675,12 @@ export const useUpdateUserRole = <
 /**
  * @summary Assign a user as admin of a club (overseer)
  */
-export const getAssignClubAdminUrl = (id: number) => {
+export const getAssignClubAdminUrl = (id: string) => {
   return `/api/users/${id}/assign-club-admin`;
 };
 
 export const assignClubAdmin = async (
-  id: number,
+  id: string,
   assignClubAdminBody: AssignClubAdminBody,
   options?: RequestInit,
 ): Promise<Member> => {
@@ -2699,14 +2699,14 @@ export const getAssignClubAdminMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof assignClubAdmin>>,
     TError,
-    { id: number; data: BodyType<AssignClubAdminBody> },
+    { id: string; data: BodyType<AssignClubAdminBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof assignClubAdmin>>,
   TError,
-  { id: number; data: BodyType<AssignClubAdminBody> },
+  { id: string; data: BodyType<AssignClubAdminBody> },
   TContext
 > => {
   const mutationKey = ["assignClubAdmin"];
@@ -2720,7 +2720,7 @@ export const getAssignClubAdminMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof assignClubAdmin>>,
-    { id: number; data: BodyType<AssignClubAdminBody> }
+    { id: string; data: BodyType<AssignClubAdminBody> }
   > = (props) => {
     const { id, data } = props ?? {};
 
@@ -2746,14 +2746,14 @@ export const useAssignClubAdmin = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof assignClubAdmin>>,
     TError,
-    { id: number; data: BodyType<AssignClubAdminBody> },
+    { id: string; data: BodyType<AssignClubAdminBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof assignClubAdmin>>,
   TError,
-  { id: number; data: BodyType<AssignClubAdminBody> },
+  { id: string; data: BodyType<AssignClubAdminBody> },
   TContext
 > => {
   return useMutation(getAssignClubAdminMutationOptions(options));

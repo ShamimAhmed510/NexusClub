@@ -1,17 +1,17 @@
 import type { Request, Response, NextFunction } from "express";
-import { eq } from "drizzle-orm";
-import { db, usersTable, membershipsTable, clubsTable } from "@workspace/db";
+import mongoose from "mongoose";
+import { User, Membership, Club } from "@workspace/db";
 
 declare module "express-session" {
   interface SessionData {
-    userId?: number;
+    userId?: string;
   }
 }
 
 export type AuthRole = "student" | "faculty" | "club_admin" | "overseer";
 
 export type AuthUser = {
-  id: number;
+  id: string;
   username: string;
   fullName: string;
   email: string;
@@ -22,44 +22,37 @@ export type AuthUser = {
   createdAt: Date;
 };
 
-export async function loadUser(userId: number): Promise<AuthUser | null> {
-  const [row] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
-  if (!row) return null;
+export async function loadUser(userId: string): Promise<AuthUser | null> {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+  const doc = await User.findById(userId).lean();
+  if (!doc) return null;
   return {
-    id: row.id,
-    username: row.username,
-    fullName: row.fullName,
-    email: row.email,
-    role: row.role as AuthRole,
-    studentId: row.studentId,
-    department: row.department,
-    avatarUrl: row.avatarUrl,
-    createdAt: row.createdAt,
+    id: (doc._id as any).toString(),
+    username: doc.username as string,
+    fullName: doc.fullName as string,
+    email: doc.email as string,
+    role: doc.role as AuthRole,
+    studentId: (doc.studentId as string | null) ?? null,
+    department: (doc.department as string | null) ?? null,
+    avatarUrl: (doc.avatarUrl as string | null) ?? null,
+    createdAt: doc.createdAt as Date,
   };
 }
 
-export async function adminClubSlugsForUser(userId: number): Promise<string[]> {
-  const rows = await db
-    .select({ slug: clubsTable.slug, role: membershipsTable.role })
-    .from(membershipsTable)
-    .innerJoin(clubsTable, eq(clubsTable.id, membershipsTable.clubId))
-    .where(eq(membershipsTable.userId, userId));
-  return rows
-    .filter((r) =>
-      ["president", "vice_president", "secretary"].includes(r.role),
-    )
-    .map((r) => r.slug);
+export async function adminClubSlugsForUser(userId: string): Promise<string[]> {
+  const memberships = await Membership.find({ userId }).select("clubId role").lean();
+  const adminRoles = ["president", "vice_president", "secretary"];
+  const adminClubIds = memberships
+    .filter((m: any) => adminRoles.includes(m.role as string))
+    .map((m: any) => m.clubId);
+
+  if (adminClubIds.length === 0) return [];
+
+  const clubs = await Club.find({ _id: { $in: adminClubIds } }).select("slug").lean();
+  return clubs.map((c: any) => c.slug as string);
 }
 
-export function requireAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   if (!req.session?.userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;

@@ -8,8 +8,8 @@
 import type { MediaItemCategory } from "./mediaItemCategory";
 
 export interface MediaItem {
-  id: number;
-  clubId: number;
+  id: string;
+  clubId: string;
   clubSlug: string;
   url: string;
   /** @nullable */

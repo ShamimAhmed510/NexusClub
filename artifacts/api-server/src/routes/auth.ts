@@ -1,7 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import { User } from "@workspace/db";
 import { LoginBody, RegisterBody } from "@workspace/api-zod";
 import {
   adminClubSlugsForUser,
@@ -9,7 +8,7 @@ import {
   loadUser,
   requireAuth,
   serializeUser,
-} from "../lib/auth";
+} from "../lib/auth.js";
 
 const router: IRouter = Router();
 
@@ -20,22 +19,19 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     return;
   }
   const { username, password } = parsed.data;
-  const [row] = await db
-    .select()
-    .from(usersTable)
-    .where(eq(usersTable.username, username.toLowerCase()))
-    .limit(1);
-  if (!row) {
+  const doc = await User.findOne({ username: username.toLowerCase() }).lean();
+  if (!doc) {
     res.status(401).json({ error: "Invalid username or password" });
     return;
   }
-  const ok = await bcrypt.compare(password, row.passwordHash);
+  const ok = await bcrypt.compare(password, doc.passwordHash as string);
   if (!ok) {
     res.status(401).json({ error: "Invalid username or password" });
     return;
   }
-  req.session.userId = row.id;
-  const user = await loadUser(row.id);
+  const userId = (doc._id as any).toString();
+  req.session.userId = userId;
+  const user = await loadUser(userId);
   if (!user) {
     res.status(500).json({ error: "Login failed" });
     return;
@@ -62,44 +58,30 @@ router.post("/auth/register", async (req: Request, res: Response) => {
     res.status(400).json({ error: "Password must be at least 6 characters" });
     return;
   }
-  const [existingByUsername] = await db
-    .select({ id: usersTable.id })
-    .from(usersTable)
-    .where(eq(usersTable.username, lcUsername))
-    .limit(1);
+  const existingByUsername = await User.findOne({ username: lcUsername }).lean();
   if (existingByUsername) {
     res.status(409).json({ error: "Username already taken" });
     return;
   }
-  const [existingByEmail] = await db
-    .select({ id: usersTable.id })
-    .from(usersTable)
-    .where(eq(usersTable.email, lcEmail))
-    .limit(1);
+  const existingByEmail = await User.findOne({ email: lcEmail }).lean();
   if (existingByEmail) {
     res.status(409).json({ error: "Email already registered" });
     return;
   }
   const passwordHash = await bcrypt.hash(password, 10);
-  const [created] = await db
-    .insert(usersTable)
-    .values({
-      username: lcUsername,
-      passwordHash,
-      fullName,
-      email: lcEmail,
-      role,
-      studentId: studentId ?? null,
-      department: department ?? null,
-      batch: batch ?? null,
-    })
-    .returning();
-  if (!created) {
-    res.status(500).json({ error: "Failed to create user" });
-    return;
-  }
-  req.session.userId = created.id;
-  const user = await loadUser(created.id);
+  const created = await User.create({
+    username: lcUsername,
+    passwordHash,
+    fullName,
+    email: lcEmail,
+    role,
+    studentId: studentId ?? null,
+    department: department ?? null,
+    batch: batch ?? null,
+  });
+  const userId = created._id.toString();
+  req.session.userId = userId;
+  const user = await loadUser(userId);
   if (!user) {
     res.status(500).json({ error: "Failed to load user" });
     return;

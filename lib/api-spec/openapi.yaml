@@ -262,7 +262,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
+          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -285,7 +285,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
+          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -369,7 +369,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
+          schema: { type: string }
       responses:
         "200":
           description: Event
@@ -385,7 +385,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
+          schema: { type: string }
       responses:
         "200":
           description: Approved
@@ -401,7 +401,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
+          schema: { type: string }
       responses:
         "200":
           description: RSVP toggled
@@ -618,7 +618,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
+          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -641,7 +641,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: integer }
+          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -717,7 +717,7 @@ components:
     User:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: string }
         username: { type: string }
         fullName: { type: string }
         email: { type: string }
@@ -748,7 +748,7 @@ components:
     Club:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: string }
         slug: { type: string }
         name: { type: string }
         category: { type: string }
@@ -844,18 +844,18 @@ components:
         role:
           type: ["string", "null"]
         membershipId:
-          type: ["integer", "null"]
+          type: ["string", "null"]
         requestId:
-          type: ["integer", "null"]
+          type: ["string", "null"]
       required: [status]
 
     # ---------- MEMBERS ----------
     Member:
       type: object
       properties:
-        id: { type: integer }
-        userId: { type: integer }
-        clubId: { type: integer }
+        id: { type: string }
+        userId: { type: string }
+        clubId: { type: string }
         clubSlug: { type: string }
         clubName: { type: string }
         fullName: { type: string }
@@ -870,9 +870,9 @@ components:
     JoinRequest:
       type: object
       properties:
-        id: { type: integer }
-        userId: { type: integer }
-        clubId: { type: integer }
+        id: { type: string }
+        userId: { type: string }
+        clubId: { type: string }
         clubSlug: { type: string }
         clubName: { type: string }
         fullName: { type: string }
@@ -929,8 +929,8 @@ components:
     Event:
       type: object
       properties:
-        id: { type: integer }
-        clubId: { type: integer }
+        id: { type: string }
+        clubId: { type: string }
         clubSlug: { type: string }
         clubName: { type: string }
         title: { type: string }
@@ -987,8 +987,8 @@ components:
     Post:
       type: object
       properties:
-        id: { type: integer }
-        clubId: { type: integer }
+        id: { type: string }
+        clubId: { type: string }
         clubSlug: { type: string }
         clubName: { type: string }
         title: { type: string }
@@ -1011,9 +1011,9 @@ components:
     Notice:
       type: object
       properties:
-        id: { type: integer }
+        id: { type: string }
         clubId:
-          type: ["integer", "null"]
+          type: ["string", "null"]
         clubSlug:
           type: ["string", "null"]
         clubName:
@@ -1058,8 +1058,8 @@ components:
     MediaItem:
       type: object
       properties:
-        id: { type: integer }
-        clubId: { type: integer }
+        id: { type: string }
+        clubId: { type: string }
         clubSlug: { type: string }
         url: { type: string }
         caption:

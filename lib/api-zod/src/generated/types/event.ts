@@ -8,8 +8,8 @@
 import type { EventStatus } from "./eventStatus";
 
 export interface Event {
-  id: number;
-  clubId: number;
+  id: string;
+  clubId: string;
   clubSlug: string;
   clubName: string;
   title: string;

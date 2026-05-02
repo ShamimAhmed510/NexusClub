@@ -1,386 +1,378 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import mongoose from "mongoose";
 import {
-  db,
-  clubsTable,
-  membershipsTable,
-  joinRequestsTable,
-  eventsTable,
-  eventRsvpsTable,
-  postsTable,
-  noticesTable,
-  mediaTable,
-  usersTable,
+  Club,
+  Event,
+  EventRsvp,
+  JoinRequest,
+  Media,
+  Membership,
+  Notice,
+  Post,
+  User,
 } from "@workspace/db";
-import bcrypt from "bcryptjs";
 import {
+  CreateClubBody,
   UpdateClubBody,
-  RequestJoinClubBody,
-  DecideJoinRequestBody,
-  UpdateMemberRoleBody,
+  JoinClubBody,
+  DecisionBody,
+  UpdateRoleBody,
   CreateEventBody,
   CreatePostBody,
-  CreateNoticeBody,
   AddClubMediaBody,
-  CreateClubBody,
 } from "@workspace/api-zod";
-import {
-  getCurrentUser,
-  requireAuth,
-  adminClubSlugsForUser,
-} from "../lib/auth";
+import { getCurrentUser, requireAuth } from "../lib/auth.js";
 import {
   serializeClub,
-  serializeMember,
-  serializeJoinRequest,
   serializeEvent,
-  serializePost,
-  serializeNotice,
+  serializeJoinRequest,
   serializeMedia,
-  serializeUserPublic,
-} from "../lib/serializers";
+  serializeMember,
+  serializeNotice,
+  serializePost,
+} from "../lib/serializers.js";
+import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
 
+function s(id: any): string {
+  return id.toString();
+}
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 async function userIsClubAdminOrOverseer(
-  userId: number,
-  clubId: number,
+  userId: string,
+  clubId: string,
   role: string,
 ): Promise<boolean> {
   if (role === "overseer") return true;
-  const [m] = await db
-    .select()
-    .from(membershipsTable)
-    .where(
-      and(
-        eq(membershipsTable.userId, userId),
-        eq(membershipsTable.clubId, clubId),
-      ),
-    )
-    .limit(1);
+  const m = await Membership.findOne({ userId, clubId }).lean();
   if (!m) return false;
-  return ["president", "vice_president", "secretary"].includes(m.role);
+  return ["president", "vice_president", "secretary"].includes((m as any).role);
 }
 
-async function listClubsWithCounts() {
-  const clubs = await db.select().from(clubsTable).orderBy(asc(clubsTable.name));
-  if (clubs.length === 0) return [];
-  const memberCounts = await db
-    .select({
-      clubId: membershipsTable.clubId,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(membershipsTable)
-    .groupBy(membershipsTable.clubId);
-  const eventCounts = await db
-    .select({
-      clubId: eventsTable.clubId,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(eventsTable)
-    .where(eq(eventsTable.status, "approved"))
-    .groupBy(eventsTable.clubId);
-  const memMap = new Map(memberCounts.map((r) => [r.clubId, Number(r.count)]));
-  const evMap = new Map(eventCounts.map((r) => [r.clubId, Number(r.count)]));
-  return clubs.map((c) =>
-    serializeClub({
-      ...c,
-      memberCount: memMap.get(c.id) ?? 0,
-      eventCount: evMap.get(c.id) ?? 0,
+async function getClubWithCounts(doc: any) {
+  const clubId = s(doc._id);
+  const [memberCount, eventCount] = await Promise.all([
+    Membership.countDocuments({ clubId }),
+    Event.countDocuments({ clubId, status: "approved" }),
+  ]);
+  return serializeClub({
+    id: clubId,
+    slug: doc.slug,
+    name: doc.name,
+    category: doc.category,
+    shortDescription: doc.shortDescription,
+    description: doc.description,
+    logoUrl: doc.logoUrl ?? null,
+    coverUrl: doc.coverUrl ?? null,
+    accentColor: doc.accentColor,
+    websiteUrl: doc.websiteUrl ?? null,
+    facebookUrl: doc.facebookUrl ?? null,
+    instagramUrl: doc.instagramUrl ?? null,
+    memberCount,
+    eventCount,
+  });
+}
+
+async function buildEventRows(
+  eventDocs: any[],
+  viewerUserId: string | null,
+  clubSlug: string,
+  clubName: string,
+) {
+  if (eventDocs.length === 0) return [];
+  const ids = eventDocs.map((e: any) => e._id);
+
+  const [rsvpAgg, viewerRsvpRows] = await Promise.all([
+    EventRsvp.aggregate([
+      { $match: { eventId: { $in: ids } } },
+      { $group: { _id: "$eventId", n: { $sum: 1 } } },
+    ]),
+    viewerUserId
+      ? EventRsvp.find({ userId: viewerUserId, eventId: { $in: ids } }).lean()
+      : Promise.resolve([]),
+  ]);
+
+  const rsvpCounts = new Map<string, number>(rsvpAgg.map((r: any) => [s(r._id), r.n]));
+  const viewerRsvps = new Set<string>((viewerRsvpRows as any[]).map((r: any) => s(r.eventId)));
+
+  return eventDocs.map((e: any) =>
+    serializeEvent({
+      id: s(e._id),
+      clubId: s(e.clubId),
+      clubSlug,
+      clubName,
+      title: e.title,
+      description: e.description,
+      startsAt: e.startsAt,
+      endsAt: e.endsAt ?? null,
+      venue: e.venue,
+      capacity: e.capacity ?? null,
+      coverUrl: e.coverUrl ?? null,
+      status: e.status,
+      rsvpCount: rsvpCounts.get(s(e._id)) ?? 0,
+      viewerHasRsvp: viewerRsvps.has(s(e._id)),
     }),
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// CLUBS
+// ─────────────────────────────────────────────────────────────
+
 router.get("/clubs", async (_req: Request, res: Response) => {
-  res.json(await listClubsWithCounts());
+  const clubs = await Club.find().sort({ name: 1 }).lean();
+  if (clubs.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const [memberCounts, eventCounts] = await Promise.all([
+    Membership.aggregate([{ $group: { _id: "$clubId", n: { $sum: 1 } } }]),
+    Event.aggregate([
+      { $match: { status: "approved" } },
+      { $group: { _id: "$clubId", n: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const memMap = new Map<string, number>(memberCounts.map((r: any) => [s(r._id), r.n]));
+  const evMap = new Map<string, number>(eventCounts.map((r: any) => [s(r._id), r.n]));
+
+  res.json(
+    clubs.map((c: any) =>
+      serializeClub({
+        id: s(c._id),
+        slug: c.slug,
+        name: c.name,
+        category: c.category,
+        shortDescription: c.shortDescription,
+        description: c.description,
+        logoUrl: c.logoUrl ?? null,
+        coverUrl: c.coverUrl ?? null,
+        accentColor: c.accentColor,
+        websiteUrl: c.websiteUrl ?? null,
+        facebookUrl: c.facebookUrl ?? null,
+        instagramUrl: c.instagramUrl ?? null,
+        memberCount: memMap.get(s(c._id)) ?? 0,
+        eventCount: evMap.get(s(c._id)) ?? 0,
+      }),
+    ),
+  );
 });
 
-router.post(
-  "/clubs",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    const user = await getCurrentUser(req);
-    if (!user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    if (user.role !== "overseer") {
-      res.status(403).json({ error: "Only overseer can create clubs" });
-      return;
-    }
-    const parsed = CreateClubBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: "Invalid payload", details: parsed.error.flatten() });
-      return;
-    }
-    const { name, category, shortDescription, description, accentColor, adminUsername, adminPassword, adminFullName } = parsed.data;
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-      .slice(0, 60);
-    const [existingClub] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (existingClub) {
-      res.status(409).json({ error: "A club with this name already exists" });
-      return;
-    }
-    const [created] = await db
-      .insert(clubsTable)
-      .values({
-        slug,
-        name,
-        category: category ?? "General",
-        shortDescription: shortDescription ?? "",
-        description: description ?? "",
-        accentColor: accentColor ?? "#6366f1",
-      })
-      .returning();
-    if (!created) {
-      res.status(500).json({ error: "Could not create club" });
-      return;
-    }
-    if (adminUsername && adminPassword) {
-      const [existingUser] = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.username, adminUsername))
-        .limit(1);
-      let adminUserId: number;
-      if (existingUser) {
-        adminUserId = existingUser.id;
-      } else {
-        const passwordHash = await bcrypt.hash(adminPassword, 10);
-        const email = `${adminUsername}@mu.edu`;
-        const [newUser] = await db
-          .insert(usersTable)
-          .values({
-            username: adminUsername,
-            passwordHash,
-            fullName: adminFullName ?? adminUsername,
-            email,
-            role: "club_admin",
-          })
-          .returning();
-        if (!newUser) {
-          res.status(500).json({ error: "Could not create admin user" });
-          return;
-        }
-        adminUserId = newUser.id;
-      }
-      await db.insert(membershipsTable).values({
-        userId: adminUserId,
-        clubId: created.id,
+router.post("/clubs", requireAuth, async (req: Request, res: Response) => {
+  const user = await getCurrentUser(req);
+  if (!user || user.role !== "overseer") {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const parsed = CreateClubBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload" });
+    return;
+  }
+  const { name, category, shortDescription, description, accentColor } = parsed.data;
+  let slug = slugify(name);
+  const existing = await Club.findOne({ slug }).lean();
+  if (existing) slug = `${slug}-${Date.now()}`;
+
+  const club = await Club.create({
+    slug,
+    name,
+    category: category ?? "General",
+    shortDescription: shortDescription ?? "",
+    description: description ?? "",
+    accentColor: accentColor ?? "#1f4e79",
+  });
+
+  if (parsed.data.adminUsername && parsed.data.adminPassword && parsed.data.adminFullName) {
+    const existingAdmin = await User.findOne({
+      username: parsed.data.adminUsername.toLowerCase(),
+    }).lean();
+    if (!existingAdmin) {
+      const hash = await bcrypt.hash(parsed.data.adminPassword, 10);
+      const adminUser = await User.create({
+        username: parsed.data.adminUsername.toLowerCase(),
+        passwordHash: hash,
+        fullName: parsed.data.adminFullName,
+        email: `${parsed.data.adminUsername.toLowerCase()}@mu.edu`,
+        role: "club_admin",
+      });
+      await Membership.create({
+        userId: adminUser._id,
+        clubId: club._id,
         role: "president",
-      }).onConflictDoNothing();
+        joinedAt: new Date(),
+      });
     }
-    const clubs = await listClubsWithCounts();
-    const club = clubs.find((c) => c.id === created.id) ?? { ...created, memberCount: 0, eventCount: 0 };
-    res.status(201).json(serializeClub(club));
-  },
-);
+  }
+
+  res.status(201).json(await getClubWithCounts(club.toObject()));
+});
 
 router.get("/clubs/:slug", async (req: Request, res: Response) => {
   const slug = String(req.params.slug);
-  const [club] = await db
-    .select()
-    .from(clubsTable)
-    .where(eq(clubsTable.slug, slug))
-    .limit(1);
+  const club = await Club.findOne({ slug }).lean();
   if (!club) {
     res.status(404).json({ error: "Club not found" });
     return;
   }
+  const clubId = s((club as any)._id);
+  const viewer = await getCurrentUser(req);
 
-  const memberRows = await db
-    .select({
-      mem: membershipsTable,
-      user: usersTable,
-    })
-    .from(membershipsTable)
-    .innerJoin(usersTable, eq(usersTable.id, membershipsTable.userId))
-    .where(eq(membershipsTable.clubId, club.id))
-    .orderBy(asc(membershipsTable.joinedAt));
+  const [memberships, eventDocs, postDocs, noticeDocs, mediaDocs] = await Promise.all([
+    Membership.find({ clubId }).sort({ joinedAt: 1 }).lean(),
+    Event.find({ clubId, status: "approved" }).sort({ startsAt: 1 }).lean(),
+    Post.find({ clubId }).sort({ createdAt: -1 }).limit(10).lean(),
+    Notice.find({ clubId }).sort({ pinned: -1, publishAt: -1 }).lean(),
+    Media.find({ clubId }).sort({ createdAt: -1 }).lean(),
+  ]);
 
-  const allMembers = memberRows.map((r) =>
-    serializeMember({
-      ...r.mem,
-      fullName: r.user.fullName,
-      email: r.user.email,
-      avatarUrl: r.user.avatarUrl,
-      clubSlug: club.slug,
-      clubName: club.name,
-    }),
-  );
-  const leadership = allMembers.filter((m) =>
-    ["president", "vice_president", "secretary"].includes(m.role),
+  const memberUserIds = memberships.map((m: any) => m.userId);
+  const memberUsers = await User.find({ _id: { $in: memberUserIds } }).lean();
+  const userMap = new Map(memberUsers.map((u: any) => [s(u._id), u]));
+
+  const allMembers = memberships.map((m: any) => {
+    const u: any = userMap.get(s(m.userId));
+    return serializeMember({
+      id: s(m._id),
+      userId: s(m.userId),
+      clubId: s(m.clubId),
+      clubSlug: (club as any).slug,
+      clubName: (club as any).name,
+      fullName: u?.fullName ?? "",
+      email: u?.email ?? "",
+      avatarUrl: u?.avatarUrl ?? null,
+      role: m.role,
+      joinedAt: m.joinedAt,
+    });
+  });
+
+  const leadership = allMembers.filter(
+    (m) => m.role !== "member",
   );
 
   const now = new Date();
-  const eventRows = await db
-    .select()
-    .from(eventsTable)
-    .where(
-      and(eq(eventsTable.clubId, club.id), eq(eventsTable.status, "approved")),
-    )
-    .orderBy(asc(eventsTable.startsAt));
+  const viewerId = viewer?.id ?? null;
+  const allEventSerialized = await buildEventRows(
+    eventDocs,
+    viewerId,
+    (club as any).slug,
+    (club as any).name,
+  );
+  const upcomingEvents = allEventSerialized.filter(
+    (e) => new Date(e.startsAt) >= now,
+  );
+  const pastEvents = allEventSerialized
+    .filter((e) => new Date(e.startsAt) < now)
+    .reverse();
 
-  const eventIds = eventRows.map((e) => e.id);
-  let rsvpCounts = new Map<number, number>();
-  let viewerRsvps = new Set<number>();
-  if (eventIds.length > 0) {
-    const counts = await db
-      .select({
-        eventId: eventRsvpsTable.eventId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(eventRsvpsTable)
-      .where(inArray(eventRsvpsTable.eventId, eventIds))
-      .groupBy(eventRsvpsTable.eventId);
-    rsvpCounts = new Map(counts.map((c) => [c.eventId, Number(c.count)]));
-    const viewer = await getCurrentUser(req);
-    if (viewer) {
-      const v = await db
-        .select({ eventId: eventRsvpsTable.eventId })
-        .from(eventRsvpsTable)
-        .where(
-          and(
-            eq(eventRsvpsTable.userId, viewer.id),
-            inArray(eventRsvpsTable.eventId, eventIds),
-          ),
-        );
-      viewerRsvps = new Set(v.map((r) => r.eventId));
-    }
-  }
+  const authorIds = [...new Set(postDocs.map((p: any) => s(p.authorId)))];
+  const authors = await User.find({ _id: { $in: authorIds } }).lean();
+  const authorMap = new Map(authors.map((a: any) => [s(a._id), a]));
 
-  const upcomingEvents = eventRows
-    .filter((e) => e.startsAt >= now)
-    .map((e) =>
-      serializeEvent({
-        ...e,
-        clubSlug: club.slug,
-        clubName: club.name,
-        rsvpCount: rsvpCounts.get(e.id) ?? 0,
-        viewerHasRsvp: viewerRsvps.has(e.id),
-      }),
-    );
-  const pastEvents = eventRows
-    .filter((e) => e.startsAt < now)
-    .reverse()
-    .map((e) =>
-      serializeEvent({
-        ...e,
-        clubSlug: club.slug,
-        clubName: club.name,
-        rsvpCount: rsvpCounts.get(e.id) ?? 0,
-        viewerHasRsvp: viewerRsvps.has(e.id),
-      }),
-    );
+  const posts = postDocs.map((p: any) => {
+    const author: any = authorMap.get(s(p.authorId));
+    return serializePost({
+      id: s(p._id),
+      clubId: s(p.clubId),
+      clubSlug: (club as any).slug,
+      clubName: (club as any).name,
+      title: p.title,
+      body: p.body,
+      imageUrl: p.imageUrl ?? null,
+      authorName: author?.fullName ?? "",
+      createdAt: p.createdAt,
+    });
+  });
 
-  const postRows = await db
-    .select({ post: postsTable, author: usersTable })
-    .from(postsTable)
-    .innerJoin(usersTable, eq(usersTable.id, postsTable.authorId))
-    .where(eq(postsTable.clubId, club.id))
-    .orderBy(desc(postsTable.createdAt))
-    .limit(20);
-  const posts = postRows.map((r) =>
-    serializePost({
-      ...r.post,
-      clubSlug: club.slug,
-      clubName: club.name,
-      authorName: r.author.fullName,
+  const notices = noticeDocs.map((n: any) =>
+    serializeNotice({
+      id: s(n._id),
+      clubId: s(n.clubId),
+      clubSlug: (club as any).slug,
+      clubName: (club as any).name,
+      authorId: s(n.authorId),
+      title: n.title,
+      body: n.body,
+      scope: n.scope,
+      pinned: n.pinned,
+      publishAt: n.publishAt,
+      expireAt: n.expireAt ?? null,
+      audienceRole: n.audienceRole ?? null,
+      createdAt: n.createdAt,
     }),
   );
 
-  const noticeRows = await db
-    .select()
-    .from(noticesTable)
-    .where(eq(noticesTable.clubId, club.id))
-    .orderBy(desc(noticesTable.pinned), desc(noticesTable.publishAt))
-    .limit(20);
-  const notices = noticeRows.map((n) =>
-    serializeNotice({ ...n, clubSlug: club.slug, clubName: club.name }),
-  );
+  const achievements = mediaDocs
+    .filter((m: any) => m.category === "achievement")
+    .map((m: any) =>
+      serializeMedia({
+        id: s(m._id),
+        clubId: s(m.clubId),
+        clubSlug: (club as any).slug,
+        url: m.url,
+        caption: m.caption ?? null,
+        category: m.category,
+        createdAt: m.createdAt,
+      }),
+    );
+  const gallery = mediaDocs
+    .filter((m: any) => m.category !== "achievement")
+    .map((m: any) =>
+      serializeMedia({
+        id: s(m._id),
+        clubId: s(m.clubId),
+        clubSlug: (club as any).slug,
+        url: m.url,
+        caption: m.caption ?? null,
+        category: m.category,
+        createdAt: m.createdAt,
+      }),
+    );
 
-  const mediaRows = await db
-    .select()
-    .from(mediaTable)
-    .where(eq(mediaTable.clubId, club.id))
-    .orderBy(desc(mediaTable.createdAt));
-  const allMedia = mediaRows.map((m) =>
-    serializeMedia({ ...m, clubSlug: club.slug }),
-  );
-  const achievements = allMedia.filter((m) => m.category === "achievement");
-  const gallery = allMedia.filter((m) => m.category !== "achievement");
+  const [memberCount, eventCount] = await Promise.all([
+    Membership.countDocuments({ clubId }),
+    Event.countDocuments({ clubId, status: "approved" }),
+  ]);
 
-  let viewerMembership:
-    | {
-        status: "none" | "pending" | "approved" | "rejected";
-        role: string | null;
-        membershipId: number | null;
-        requestId: number | null;
-      }
-    | null = null;
-  const viewer = await getCurrentUser(req);
+  let viewerMembership = null;
   if (viewer) {
-    const [m] = await db
-      .select()
-      .from(membershipsTable)
-      .where(
-        and(
-          eq(membershipsTable.userId, viewer.id),
-          eq(membershipsTable.clubId, club.id),
-        ),
-      )
-      .limit(1);
-    if (m) {
-      viewerMembership = {
-        status: "approved",
-        role: m.role,
-        membershipId: m.id,
-        requestId: null,
-      };
-    } else {
-      const [r] = await db
-        .select()
-        .from(joinRequestsTable)
-        .where(
-          and(
-            eq(joinRequestsTable.userId, viewer.id),
-            eq(joinRequestsTable.clubId, club.id),
-          ),
-        )
-        .orderBy(desc(joinRequestsTable.createdAt))
-        .limit(1);
-      if (r) {
-        viewerMembership = {
-          status: r.status as "pending" | "approved" | "rejected",
-          role: null,
-          membershipId: null,
-          requestId: r.id,
-        };
-      } else {
-        viewerMembership = {
-          status: "none",
-          role: null,
-          membershipId: null,
-          requestId: null,
-        };
-      }
-    }
+    const mem = await Membership.findOne({ userId: viewer.id, clubId }).lean();
+    const req2 = await JoinRequest.findOne({ userId: viewer.id, clubId }).sort({ createdAt: -1 }).lean();
+    viewerMembership = {
+      status: mem ? "approved" : req2 ? (req2 as any).status : "none",
+      role: mem ? (mem as any).role : null,
+      membershipId: mem ? s((mem as any)._id) : null,
+      requestId: req2 ? s((req2 as any)._id) : null,
+    };
   }
 
-  const memberCount = allMembers.length;
-  const eventCount = eventRows.length;
-
   res.json({
-    club: serializeClub({ ...club, memberCount, eventCount }),
+    club: serializeClub({
+      id: clubId,
+      slug: (club as any).slug,
+      name: (club as any).name,
+      category: (club as any).category,
+      shortDescription: (club as any).shortDescription,
+      description: (club as any).description,
+      logoUrl: (club as any).logoUrl ?? null,
+      coverUrl: (club as any).coverUrl ?? null,
+      accentColor: (club as any).accentColor,
+      websiteUrl: (club as any).websiteUrl ?? null,
+      facebookUrl: (club as any).facebookUrl ?? null,
+      instagramUrl: (club as any).instagramUrl ?? null,
+      memberCount,
+      eventCount,
+    }),
     leadership,
     members: allMembers,
     upcomingEvents,
@@ -393,88 +385,92 @@ router.get("/clubs/:slug", async (req: Request, res: Response) => {
   });
 });
 
-router.patch(
-  "/clubs/:slug",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    const slug = String(req.params.slug);
-    const parsed = UpdateClubBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: "Invalid payload" });
-      return;
-    }
-    const user = await getCurrentUser(req);
-    if (!user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const allowed = await userIsClubAdminOrOverseer(user.id, club.id, user.role);
-    if (!allowed) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
-    const [updated] = await db
-      .update(clubsTable)
-      .set(parsed.data)
-      .where(eq(clubsTable.id, club.id))
-      .returning();
-    if (!updated) {
-      res.status(500).json({ error: "Update failed" });
-      return;
-    }
-    res.json(serializeClub({ ...updated, memberCount: 0, eventCount: 0 }));
-  },
-);
+router.patch("/clubs/:slug", requireAuth, async (req: Request, res: Response) => {
+  const slug = String(req.params.slug);
+  const parsed = UpdateClubBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid payload" });
+    return;
+  }
+  const user = await getCurrentUser(req);
+  if (!user) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const club = await Club.findOne({ slug }).lean();
+  if (!club) {
+    res.status(404).json({ error: "Club not found" });
+    return;
+  }
+  const allowed = await userIsClubAdminOrOverseer(user.id, s((club as any)._id), user.role);
+  if (!allowed) {
+    res.status(403).json({ error: "Forbidden" });
+    return;
+  }
+  const updates: Record<string, any> = {};
+  const d = parsed.data;
+  if (d.name !== undefined) updates.name = d.name;
+  if (d.category !== undefined) updates.category = d.category;
+  if (d.shortDescription !== undefined) updates.shortDescription = d.shortDescription;
+  if (d.description !== undefined) updates.description = d.description;
+  if (d.logoUrl !== undefined) updates.logoUrl = d.logoUrl;
+  if (d.coverUrl !== undefined) updates.coverUrl = d.coverUrl;
+  if (d.accentColor !== undefined) updates.accentColor = d.accentColor;
+  if (d.websiteUrl !== undefined) updates.websiteUrl = d.websiteUrl;
+  if (d.facebookUrl !== undefined) updates.facebookUrl = d.facebookUrl;
+  if (d.instagramUrl !== undefined) updates.instagramUrl = d.instagramUrl;
 
-router.get(
-  "/clubs/:slug/members",
-  async (req: Request, res: Response) => {
-    const slug = String(req.params.slug);
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const rows = await db
-      .select({ mem: membershipsTable, user: usersTable })
-      .from(membershipsTable)
-      .innerJoin(usersTable, eq(usersTable.id, membershipsTable.userId))
-      .where(eq(membershipsTable.clubId, club.id))
-      .orderBy(asc(membershipsTable.joinedAt));
-    res.json(
-      rows.map((r) =>
-        serializeMember({
-          ...r.mem,
-          fullName: r.user.fullName,
-          email: r.user.email,
-          avatarUrl: r.user.avatarUrl,
-          clubSlug: club.slug,
-          clubName: club.name,
-        }),
-      ),
-    );
-  },
-);
+  const updated = await Club.findByIdAndUpdate((club as any)._id, updates, { new: true }).lean();
+  if (!updated) {
+    res.status(404).json({ error: "Club not found" });
+    return;
+  }
+  res.json(await getClubWithCounts(updated));
+});
+
+// ─────────────────────────────────────────────────────────────
+// MEMBERS
+// ─────────────────────────────────────────────────────────────
+
+router.get("/clubs/:slug/members", async (req: Request, res: Response) => {
+  const slug = String(req.params.slug);
+  const club = await Club.findOne({ slug }).lean();
+  if (!club) {
+    res.status(404).json({ error: "Club not found" });
+    return;
+  }
+  const memberships = await Membership.find({ clubId: s((club as any)._id) })
+    .sort({ joinedAt: 1 })
+    .lean();
+  const userIds = memberships.map((m: any) => m.userId);
+  const users = await User.find({ _id: { $in: userIds } }).lean();
+  const userMap = new Map(users.map((u: any) => [s(u._id), u]));
+
+  res.json(
+    memberships.map((m: any) => {
+      const u: any = userMap.get(s(m.userId));
+      return serializeMember({
+        id: s(m._id),
+        userId: s(m.userId),
+        clubId: s(m.clubId),
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        fullName: u?.fullName ?? "",
+        email: u?.email ?? "",
+        avatarUrl: u?.avatarUrl ?? null,
+        role: m.role,
+        joinedAt: m.joinedAt,
+      });
+    }),
+  );
+});
 
 router.post(
   "/clubs/:slug/join",
   requireAuth,
   async (req: Request, res: Response) => {
     const slug = String(req.params.slug);
-    const parsed = RequestJoinClubBody.safeParse(req.body ?? {});
+    const parsed = JoinClubBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid payload" });
       return;
@@ -484,64 +480,47 @@ router.post(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
+    const club = await Club.findOne({ slug }).lean();
     if (!club) {
       res.status(404).json({ error: "Club not found" });
       return;
     }
-    const [existingMembership] = await db
-      .select()
-      .from(membershipsTable)
-      .where(
-        and(
-          eq(membershipsTable.userId, user.id),
-          eq(membershipsTable.clubId, club.id),
-        ),
-      )
-      .limit(1);
-    if (existingMembership) {
+    const clubId = s((club as any)._id);
+    const existing = await Membership.findOne({ userId: user.id, clubId }).lean();
+    if (existing) {
       res.status(409).json({ error: "Already a member" });
       return;
     }
-    const [pending] = await db
-      .select()
-      .from(joinRequestsTable)
-      .where(
-        and(
-          eq(joinRequestsTable.userId, user.id),
-          eq(joinRequestsTable.clubId, club.id),
-          eq(joinRequestsTable.status, "pending"),
-        ),
-      )
-      .limit(1);
-    if (pending) {
-      res.status(409).json({ error: "Request already pending" });
+    const pendingReq = await JoinRequest.findOne({
+      userId: user.id,
+      clubId,
+      status: "pending",
+    }).lean();
+    if (pendingReq) {
+      res.status(409).json({ error: "Join request already pending" });
       return;
     }
-    const [created] = await db
-      .insert(joinRequestsTable)
-      .values({
-        userId: user.id,
-        clubId: club.id,
-        message: parsed.data.message ?? null,
-        status: "pending",
-      })
-      .returning();
-    if (!created) {
-      res.status(500).json({ error: "Could not create request" });
-      return;
-    }
+    const created = await JoinRequest.create({
+      userId: user.id,
+      clubId,
+      message: parsed.data.message ?? null,
+      status: "pending",
+    });
     res.status(201).json(
       serializeJoinRequest({
-        ...created,
-        clubSlug: club.slug,
-        clubName: club.name,
+        id: created._id.toString(),
+        userId: user.id,
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
         fullName: user.fullName,
         email: user.email,
+        studentId: user.studentId,
+        department: user.department,
+        batch: null,
+        message: created.message as string | null,
+        status: "pending",
+        createdAt: created.createdAt as Date,
       }),
     );
   },
@@ -557,39 +536,43 @@ router.get(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
+    const club = await Club.findOne({ slug }).lean();
     if (!club) {
       res.status(404).json({ error: "Club not found" });
       return;
     }
-    const allowed = await userIsClubAdminOrOverseer(user.id, club.id, user.role);
+    const clubId = s((club as any)._id);
+    const allowed = await userIsClubAdminOrOverseer(user.id, clubId, user.role);
     if (!allowed) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const rows = await db
-      .select({ r: joinRequestsTable, u: usersTable })
-      .from(joinRequestsTable)
-      .innerJoin(usersTable, eq(usersTable.id, joinRequestsTable.userId))
-      .where(eq(joinRequestsTable.clubId, club.id))
-      .orderBy(desc(joinRequestsTable.createdAt));
+    const requests = await JoinRequest.find({ clubId, status: "pending" })
+      .sort({ createdAt: 1 })
+      .lean();
+    const userIds = requests.map((r: any) => r.userId);
+    const users = await User.find({ _id: { $in: userIds } }).lean();
+    const uMap = new Map(users.map((u: any) => [s(u._id), u]));
+
     res.json(
-      rows.map((row) =>
-        serializeJoinRequest({
-          ...row.r,
-          clubSlug: club.slug,
-          clubName: club.name,
-          fullName: row.u.fullName,
-          email: row.u.email,
-          studentId: row.u.studentId,
-          department: row.u.department,
-          batch: row.u.batch,
-        }),
-      ),
+      requests.map((r: any) => {
+        const u: any = uMap.get(s(r.userId));
+        return serializeJoinRequest({
+          id: s(r._id),
+          userId: s(r.userId),
+          clubId,
+          clubSlug: (club as any).slug,
+          clubName: (club as any).name,
+          fullName: u?.fullName ?? "",
+          email: u?.email ?? "",
+          studentId: u?.studentId ?? null,
+          department: u?.department ?? null,
+          batch: u?.batch ?? null,
+          message: r.message ?? null,
+          status: r.status,
+          createdAt: r.createdAt,
+        });
+      }),
     );
   },
 );
@@ -598,91 +581,77 @@ router.post(
   "/join-requests/:id/decision",
   requireAuth,
   async (req: Request, res: Response) => {
-    const id = Number(req.params.id as string);
-    if (!Number.isFinite(id)) {
+    const id = req.params.id as string;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
     }
-    const parsed = DecideJoinRequestBody.safeParse(req.body);
+    const parsed = DecisionBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid payload" });
       return;
     }
-    const user = await getCurrentUser(req);
-    if (!user) {
+    const actor = await getCurrentUser(req);
+    if (!actor) {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const [reqRow] = await db
-      .select()
-      .from(joinRequestsTable)
-      .where(eq(joinRequestsTable.id, id))
-      .limit(1);
-    if (!reqRow) {
+    const joinReq = await JoinRequest.findById(id).lean();
+    if (!joinReq) {
       res.status(404).json({ error: "Request not found" });
       return;
     }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.id, reqRow.clubId))
-      .limit(1);
+    if ((joinReq as any).status !== "pending") {
+      res.status(409).json({ error: "Already decided" });
+      return;
+    }
+    const clubId = s((joinReq as any).clubId);
+    const club = await Club.findById(clubId).lean();
     if (!club) {
       res.status(404).json({ error: "Club not found" });
       return;
     }
-    const allowed = await userIsClubAdminOrOverseer(user.id, club.id, user.role);
+    const allowed = await userIsClubAdminOrOverseer(actor.id, clubId, actor.role);
     if (!allowed) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    if (reqRow.status !== "pending") {
-      res.status(409).json({ error: "Request already decided" });
-      return;
-    }
-    const [updated] = await db
-      .update(joinRequestsTable)
-      .set({ status: parsed.data.decision, decidedAt: new Date() })
-      .where(eq(joinRequestsTable.id, id))
-      .returning();
-    if (!updated) {
-      res.status(500).json({ error: "Update failed" });
-      return;
-    }
-    if (parsed.data.decision === "approved") {
-      const [existing] = await db
-        .select()
-        .from(membershipsTable)
-        .where(
-          and(
-            eq(membershipsTable.userId, reqRow.userId),
-            eq(membershipsTable.clubId, reqRow.clubId),
-          ),
-        )
-        .limit(1);
+    const { decision } = parsed.data;
+    const updated = await JoinRequest.findByIdAndUpdate(
+      id,
+      { status: decision, decidedAt: new Date() },
+      { new: true },
+    ).lean();
+    if (decision === "approved") {
+      const existing = await Membership.findOne({
+        userId: s((joinReq as any).userId),
+        clubId,
+      }).lean();
       if (!existing) {
-        await db.insert(membershipsTable).values({
-          userId: reqRow.userId,
-          clubId: reqRow.clubId,
+        await Membership.create({
+          userId: s((joinReq as any).userId),
+          clubId,
           role: "member",
+          joinedAt: new Date(),
         });
       }
     }
-    const [requester] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, updated.userId))
-      .limit(1);
+    const u = await User.findById((joinReq as any).userId).lean();
     res.json(
       serializeJoinRequest({
-        ...updated,
-        clubSlug: club.slug,
-        clubName: club.name,
-        fullName: requester?.fullName ?? "",
-        email: requester?.email ?? "",
-        studentId: requester?.studentId ?? null,
-        department: requester?.department ?? null,
-        batch: requester?.batch ?? null,
+        id,
+        userId: s((updated as any).userId),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        fullName: (u as any)?.fullName ?? "",
+        email: (u as any)?.email ?? "",
+        studentId: (u as any)?.studentId ?? null,
+        department: (u as any)?.department ?? null,
+        batch: (u as any)?.batch ?? null,
+        message: (updated as any).message ?? null,
+        status: (updated as any).status,
+        createdAt: (updated as any).createdAt,
       }),
     );
   },
@@ -692,325 +661,84 @@ router.patch(
   "/memberships/:id/role",
   requireAuth,
   async (req: Request, res: Response) => {
-    const id = Number(req.params.id as string);
-    if (!Number.isFinite(id)) {
+    const id = req.params.id as string;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ error: "Invalid id" });
       return;
     }
-    const parsed = UpdateMemberRoleBody.safeParse(req.body);
+    const parsed = UpdateRoleBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid payload" });
       return;
     }
-    const user = await getCurrentUser(req);
-    if (!user) {
+    const actor = await getCurrentUser(req);
+    if (!actor) {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const [mem] = await db
-      .select()
-      .from(membershipsTable)
-      .where(eq(membershipsTable.id, id))
-      .limit(1);
-    if (!mem) {
+    const m = await Membership.findById(id).lean();
+    if (!m) {
       res.status(404).json({ error: "Membership not found" });
       return;
     }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.id, mem.clubId))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const allowed = await userIsClubAdminOrOverseer(user.id, club.id, user.role);
+    const clubId = s((m as any).clubId);
+    const allowed = await userIsClubAdminOrOverseer(actor.id, clubId, actor.role);
     if (!allowed) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const [updated] = await db
-      .update(membershipsTable)
-      .set({ role: parsed.data.role })
-      .where(eq(membershipsTable.id, id))
-      .returning();
-    if (!updated) {
-      res.status(500).json({ error: "Update failed" });
-      return;
-    }
-    const [u] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, updated.userId))
-      .limit(1);
-    if (u && updated.role !== "member" && u.role === "student") {
-      await db
-        .update(usersTable)
-        .set({ role: "club_admin" })
-        .where(eq(usersTable.id, u.id));
-    }
+    const updated = await Membership.findByIdAndUpdate(
+      id,
+      { role: parsed.data.role },
+      { new: true },
+    ).lean();
+    const club = await Club.findById(clubId).lean();
+    const u = await User.findById((m as any).userId).lean();
     res.json(
       serializeMember({
-        ...updated,
-        fullName: u?.fullName ?? "",
-        email: u?.email ?? "",
-        avatarUrl: u?.avatarUrl ?? null,
-        clubSlug: club.slug,
-        clubName: club.name,
+        id,
+        userId: s((updated as any).userId),
+        clubId,
+        clubSlug: (club as any)?.slug ?? "",
+        clubName: (club as any)?.name ?? "",
+        fullName: (u as any)?.fullName ?? "",
+        email: (u as any)?.email ?? "",
+        avatarUrl: (u as any)?.avatarUrl ?? null,
+        role: (updated as any).role,
+        joinedAt: (updated as any).joinedAt,
       }),
     );
   },
 );
 
-router.get(
-  "/clubs/:slug/posts",
-  async (req: Request, res: Response) => {
-    const slug = String(req.params.slug);
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const rows = await db
-      .select({ p: postsTable, u: usersTable })
-      .from(postsTable)
-      .innerJoin(usersTable, eq(usersTable.id, postsTable.authorId))
-      .where(eq(postsTable.clubId, club.id))
-      .orderBy(desc(postsTable.createdAt));
-    res.json(
-      rows.map((r) =>
-        serializePost({
-          ...r.p,
-          clubSlug: club.slug,
-          clubName: club.name,
-          authorName: r.u.fullName,
-        }),
-      ),
-    );
-  },
-);
+// ─────────────────────────────────────────────────────────────
+// EVENTS
+// ─────────────────────────────────────────────────────────────
 
-router.post(
-  "/clubs/:slug/posts",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    const slug = String(req.params.slug);
-    const parsed = CreatePostBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: "Invalid payload" });
-      return;
-    }
-    const user = await getCurrentUser(req);
-    if (!user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const allowed = await userIsClubAdminOrOverseer(user.id, club.id, user.role);
-    if (!allowed) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
-    const [created] = await db
-      .insert(postsTable)
-      .values({
-        clubId: club.id,
-        authorId: user.id,
-        title: parsed.data.title,
-        body: parsed.data.body,
-        imageUrl: parsed.data.imageUrl ?? null,
-      })
-      .returning();
-    if (!created) {
-      res.status(500).json({ error: "Could not create post" });
-      return;
-    }
-    res.status(201).json(
-      serializePost({
-        ...created,
-        clubSlug: club.slug,
-        clubName: club.name,
-        authorName: user.fullName,
-      }),
-    );
-  },
-);
+router.get("/clubs/:slug/events", async (req: Request, res: Response) => {
+  const slug = String(req.params.slug);
+  const club = await Club.findOne({ slug }).lean();
+  if (!club) {
+    res.status(404).json({ error: "Club not found" });
+    return;
+  }
+  const clubId = s((club as any)._id);
+  const includePending = req.query.status === "pending";
+  const statusFilter = includePending ? "pending" : "approved";
+  const viewer = await getCurrentUser(req);
 
-router.get(
-  "/clubs/:slug/notices",
-  async (req: Request, res: Response) => {
-    const slug = String(req.params.slug);
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const rows = await db
-      .select()
-      .from(noticesTable)
-      .where(eq(noticesTable.clubId, club.id))
-      .orderBy(desc(noticesTable.pinned), desc(noticesTable.publishAt));
-    res.json(
-      rows.map((n) =>
-        serializeNotice({ ...n, clubSlug: club.slug, clubName: club.name }),
-      ),
-    );
-  },
-);
+  const eventDocs = await Event.find({ clubId, status: statusFilter })
+    .sort({ startsAt: 1 })
+    .lean();
 
-router.get(
-  "/clubs/:slug/media",
-  async (req: Request, res: Response) => {
-    const slug = String(req.params.slug);
-    const category = req.query.category as string | undefined;
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const conds = [eq(mediaTable.clubId, club.id)];
-    if (category) conds.push(eq(mediaTable.category, category));
-    const rows = await db
-      .select()
-      .from(mediaTable)
-      .where(and(...conds))
-      .orderBy(desc(mediaTable.createdAt));
-    res.json(rows.map((m) => serializeMedia({ ...m, clubSlug: club.slug })));
-  },
-);
-
-router.post(
-  "/clubs/:slug/media",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    const slug = String(req.params.slug);
-    const parsed = AddClubMediaBody.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: "Invalid payload" });
-      return;
-    }
-    const user = await getCurrentUser(req);
-    if (!user) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const allowed = await userIsClubAdminOrOverseer(user.id, club.id, user.role);
-    if (!allowed) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
-    const [created] = await db
-      .insert(mediaTable)
-      .values({
-        clubId: club.id,
-        uploaderId: user.id,
-        url: parsed.data.url,
-        caption: parsed.data.caption ?? null,
-        category: parsed.data.category,
-      })
-      .returning();
-    if (!created) {
-      res.status(500).json({ error: "Could not add media" });
-      return;
-    }
-    res
-      .status(201)
-      .json(serializeMedia({ ...created, clubSlug: club.slug }));
-  },
-);
-
-router.get(
-  "/clubs/:slug/events",
-  async (req: Request, res: Response) => {
-    const slug = String(req.params.slug);
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
-    if (!club) {
-      res.status(404).json({ error: "Club not found" });
-      return;
-    }
-    const includePending = req.query.status === "pending";
-    const conds = [eq(eventsTable.clubId, club.id)];
-    if (includePending) conds.push(eq(eventsTable.status, "pending"));
-    else conds.push(eq(eventsTable.status, "approved"));
-    const rows = await db
-      .select()
-      .from(eventsTable)
-      .where(and(...conds))
-      .orderBy(asc(eventsTable.startsAt));
-    const ids = rows.map((e) => e.id);
-    let counts = new Map<number, number>();
-    let viewerRsvps = new Set<number>();
-    if (ids.length > 0) {
-      const c = await db
-        .select({
-          eventId: eventRsvpsTable.eventId,
-          n: sql<number>`count(*)::int`,
-        })
-        .from(eventRsvpsTable)
-        .where(inArray(eventRsvpsTable.eventId, ids))
-        .groupBy(eventRsvpsTable.eventId);
-      counts = new Map(c.map((x) => [x.eventId, Number(x.n)]));
-      const viewer = await getCurrentUser(req);
-      if (viewer) {
-        const v = await db
-          .select({ eventId: eventRsvpsTable.eventId })
-          .from(eventRsvpsTable)
-          .where(
-            and(
-              eq(eventRsvpsTable.userId, viewer.id),
-              inArray(eventRsvpsTable.eventId, ids),
-            ),
-          );
-        viewerRsvps = new Set(v.map((x) => x.eventId));
-      }
-    }
-    res.json(
-      rows.map((e) =>
-        serializeEvent({
-          ...e,
-          clubSlug: club.slug,
-          clubName: club.name,
-          rsvpCount: counts.get(e.id) ?? 0,
-          viewerHasRsvp: viewerRsvps.has(e.id),
-        }),
-      ),
-    );
-  },
-);
+  const rows = await buildEventRows(
+    eventDocs,
+    viewer?.id ?? null,
+    (club as any).slug,
+    (club as any).name,
+  );
+  res.json(rows);
+});
 
 router.post(
   "/clubs/:slug/events",
@@ -1027,48 +755,43 @@ router.post(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
+    const club = await Club.findOne({ slug }).lean();
     if (!club) {
       res.status(404).json({ error: "Club not found" });
       return;
     }
-    const allowed = await userIsClubAdminOrOverseer(user.id, club.id, user.role);
+    const clubId = s((club as any)._id);
+    const allowed = await userIsClubAdminOrOverseer(user.id, clubId, user.role);
     if (!allowed) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const startsAt = new Date(parsed.data.startsAt);
-    const endsAt = parsed.data.endsAt ? new Date(parsed.data.endsAt) : null;
-    const status = user.role === "overseer" ? "approved" : "pending";
-    const [created] = await db
-      .insert(eventsTable)
-      .values({
-        clubId: club.id,
-        createdById: user.id,
-        title: parsed.data.title,
-        description: parsed.data.description,
-        startsAt,
-        endsAt,
-        venue: parsed.data.venue,
-        capacity: parsed.data.capacity ?? null,
-        coverUrl: parsed.data.coverUrl ?? null,
-        status,
-        approvedById: status === "approved" ? user.id : null,
-      })
-      .returning();
-    if (!created) {
-      res.status(500).json({ error: "Could not create event" });
-      return;
-    }
+    const created = await Event.create({
+      clubId,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      startsAt: new Date(parsed.data.startsAt),
+      endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null,
+      venue: parsed.data.venue,
+      capacity: parsed.data.capacity ?? null,
+      coverUrl: parsed.data.coverUrl ?? null,
+      status: "pending",
+      createdById: user.id,
+    });
     res.status(201).json(
       serializeEvent({
-        ...created,
-        clubSlug: club.slug,
-        clubName: club.name,
+        id: created._id.toString(),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        title: created.title as string,
+        description: created.description as string,
+        startsAt: created.startsAt as Date,
+        endsAt: (created.endsAt as Date | null) ?? null,
+        venue: created.venue as string,
+        capacity: (created.capacity as number | null) ?? null,
+        coverUrl: (created.coverUrl as string | null) ?? null,
+        status: created.status as string,
         rsvpCount: 0,
         viewerHasRsvp: false,
       }),
@@ -1076,12 +799,48 @@ router.post(
   },
 );
 
+// ─────────────────────────────────────────────────────────────
+// POSTS
+// ─────────────────────────────────────────────────────────────
+
+router.get("/clubs/:slug/posts", async (req: Request, res: Response) => {
+  const slug = String(req.params.slug);
+  const club = await Club.findOne({ slug }).lean();
+  if (!club) {
+    res.status(404).json({ error: "Club not found" });
+    return;
+  }
+  const posts = await Post.find({ clubId: s((club as any)._id) })
+    .sort({ createdAt: -1 })
+    .lean();
+  const authorIds = [...new Set(posts.map((p: any) => s(p.authorId)))];
+  const authors = await User.find({ _id: { $in: authorIds } }).lean();
+  const authorMap = new Map(authors.map((a: any) => [s(a._id), a]));
+
+  res.json(
+    posts.map((p: any) => {
+      const author: any = authorMap.get(s(p.authorId));
+      return serializePost({
+        id: s(p._id),
+        clubId: s(p.clubId),
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        title: p.title,
+        body: p.body,
+        imageUrl: p.imageUrl ?? null,
+        authorName: author?.fullName ?? "",
+        createdAt: p.createdAt,
+      });
+    }),
+  );
+});
+
 router.post(
-  "/clubs/:slug/notices",
+  "/clubs/:slug/posts",
   requireAuth,
   async (req: Request, res: Response) => {
     const slug = String(req.params.slug);
-    const parsed = CreateNoticeBody.safeParse(req.body);
+    const parsed = CreatePostBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid payload" });
       return;
@@ -1091,53 +850,152 @@ router.post(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    const [club] = await db
-      .select()
-      .from(clubsTable)
-      .where(eq(clubsTable.slug, slug))
-      .limit(1);
+    const club = await Club.findOne({ slug }).lean();
     if (!club) {
       res.status(404).json({ error: "Club not found" });
       return;
     }
-    const allowed = await userIsClubAdminOrOverseer(user.id, club.id, user.role);
+    const clubId = s((club as any)._id);
+    const allowed = await userIsClubAdminOrOverseer(user.id, clubId, user.role);
     if (!allowed) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const publishAt = parsed.data.publishAt
-      ? new Date(parsed.data.publishAt)
-      : new Date();
-    const expireAt = parsed.data.expireAt
-      ? new Date(parsed.data.expireAt)
-      : null;
-    const [created] = await db
-      .insert(noticesTable)
-      .values({
-        clubId: club.id,
-        authorId: user.id,
-        title: parsed.data.title,
-        body: parsed.data.body,
-        scope: "club",
-        pinned: parsed.data.pinned ?? false,
-        publishAt,
-        expireAt,
-        audienceRole: parsed.data.audienceRole ?? null,
-      })
-      .returning();
-    if (!created) {
-      res.status(500).json({ error: "Could not create notice" });
+    const created = await Post.create({
+      clubId,
+      authorId: user.id,
+      title: parsed.data.title,
+      body: parsed.data.body,
+      imageUrl: parsed.data.imageUrl ?? null,
+    });
+    res.status(201).json(
+      serializePost({
+        id: created._id.toString(),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        title: created.title as string,
+        body: created.body as string,
+        imageUrl: (created.imageUrl as string | null) ?? null,
+        authorName: user.fullName,
+        createdAt: created.createdAt as Date,
+      }),
+    );
+  },
+);
+
+// ─────────────────────────────────────────────────────────────
+// NOTICES
+// ─────────────────────────────────────────────────────────────
+
+router.get("/clubs/:slug/notices", async (req: Request, res: Response) => {
+  const slug = String(req.params.slug);
+  const club = await Club.findOne({ slug }).lean();
+  if (!club) {
+    res.status(404).json({ error: "Club not found" });
+    return;
+  }
+  const clubId = s((club as any)._id);
+  const notices = await Notice.find({ clubId })
+    .sort({ pinned: -1, publishAt: -1 })
+    .lean();
+  res.json(
+    notices.map((n: any) =>
+      serializeNotice({
+        id: s(n._id),
+        clubId,
+        clubSlug: (club as any).slug,
+        clubName: (club as any).name,
+        authorId: s(n.authorId),
+        title: n.title,
+        body: n.body,
+        scope: n.scope,
+        pinned: n.pinned,
+        publishAt: n.publishAt,
+        expireAt: n.expireAt ?? null,
+        audienceRole: n.audienceRole ?? null,
+        createdAt: n.createdAt,
+      }),
+    ),
+  );
+});
+
+// ─────────────────────────────────────────────────────────────
+// MEDIA
+// ─────────────────────────────────────────────────────────────
+
+router.get("/clubs/:slug/media", async (req: Request, res: Response) => {
+  const slug = String(req.params.slug);
+  const category = req.query.category as string | undefined;
+  const club = await Club.findOne({ slug }).lean();
+  if (!club) {
+    res.status(404).json({ error: "Club not found" });
+    return;
+  }
+  const clubId = s((club as any)._id);
+  const filter: Record<string, any> = { clubId };
+  if (category && category !== "all") filter.category = category;
+
+  const rows = await Media.find(filter).sort({ createdAt: -1 }).lean();
+  res.json(
+    rows.map((m: any) =>
+      serializeMedia({
+        id: s(m._id),
+        clubId,
+        clubSlug: (club as any).slug,
+        url: m.url,
+        caption: m.caption ?? null,
+        category: m.category,
+        createdAt: m.createdAt,
+      }),
+    ),
+  );
+});
+
+router.post(
+  "/clubs/:slug/media",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    const slug = String(req.params.slug);
+    const parsed = AddClubMediaBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Invalid payload" });
       return;
     }
-    res
-      .status(201)
-      .json(
-        serializeNotice({
-          ...created,
-          clubSlug: club.slug,
-          clubName: club.name,
-        }),
-      );
+    const user = await getCurrentUser(req);
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const club = await Club.findOne({ slug }).lean();
+    if (!club) {
+      res.status(404).json({ error: "Club not found" });
+      return;
+    }
+    const clubId = s((club as any)._id);
+    const allowed = await userIsClubAdminOrOverseer(user.id, clubId, user.role);
+    if (!allowed) {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+    const created = await Media.create({
+      clubId,
+      uploaderId: user.id,
+      url: parsed.data.url,
+      caption: parsed.data.caption ?? null,
+      category: parsed.data.category,
+    });
+    res.status(201).json(
+      serializeMedia({
+        id: created._id.toString(),
+        clubId,
+        clubSlug: (club as any).slug,
+        url: created.url as string,
+        caption: (created.caption as string | null) ?? null,
+        category: created.category as string,
+        createdAt: created.createdAt as Date,
+      }),
+    );
   },
 );
 

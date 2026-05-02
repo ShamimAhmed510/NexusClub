@@ -8,9 +8,9 @@
 import type { JoinRequestStatus } from "./joinRequestStatus";
 
 export interface JoinRequest {
-  id: number;
-  userId: number;
-  clubId: number;
+  id: string;
+  userId: string;
+  clubId: string;
   clubSlug: string;
   clubName: string;
   fullName: string;

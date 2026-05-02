@@ -1,15 +1,16 @@
-import type {
-  Club,
-  Event,
-  Post,
-  Notice,
-  Media,
-  JoinRequest,
-  Membership,
-  User,
-} from "@workspace/db";
-
-export type ClubBundle = Club & {
+export type ClubBundle = {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  shortDescription: string;
+  description: string;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  accentColor: string;
+  websiteUrl: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
   memberCount: number;
   eventCount: number;
 };
@@ -33,14 +34,24 @@ export function serializeClub(c: ClubBundle) {
   };
 }
 
-export function serializeEvent(
-  e: Event & {
-    clubSlug: string;
-    clubName: string;
-    rsvpCount: number;
-    viewerHasRsvp: boolean;
-  },
-) {
+export type EventBundle = {
+  id: string;
+  clubId: string;
+  clubSlug: string;
+  clubName: string;
+  title: string;
+  description: string;
+  startsAt: Date;
+  endsAt: Date | null;
+  venue: string;
+  capacity: number | null;
+  coverUrl: string | null;
+  status: string;
+  rsvpCount: number;
+  viewerHasRsvp: boolean;
+};
+
+export function serializeEvent(e: EventBundle) {
   return {
     id: e.id,
     clubId: e.clubId,
@@ -59,13 +70,19 @@ export function serializeEvent(
   };
 }
 
-export function serializePost(
-  p: Post & {
-    clubSlug: string;
-    clubName: string;
-    authorName: string;
-  },
-) {
+export type PostBundle = {
+  id: string;
+  clubId: string;
+  clubSlug: string;
+  clubName: string;
+  title: string;
+  body: string;
+  imageUrl: string | null;
+  authorName: string;
+  createdAt: Date;
+};
+
+export function serializePost(p: PostBundle) {
   return {
     id: p.id,
     clubId: p.clubId,
@@ -79,15 +96,26 @@ export function serializePost(
   };
 }
 
-export function serializeNotice(
-  n: Notice & {
-    clubSlug?: string | null;
-    clubName?: string | null;
-  },
-) {
+export type NoticeBundle = {
+  id: string;
+  clubId?: string | null;
+  clubSlug?: string | null;
+  clubName?: string | null;
+  authorId: string;
+  title: string;
+  body: string;
+  scope: string;
+  pinned: boolean;
+  publishAt: Date;
+  expireAt: Date | null;
+  audienceRole: string | null;
+  createdAt: Date;
+};
+
+export function serializeNotice(n: NoticeBundle) {
   return {
     id: n.id,
-    clubId: n.clubId,
+    clubId: n.clubId ?? null,
     clubSlug: n.clubSlug ?? null,
     clubName: n.clubName ?? null,
     title: n.title,
@@ -101,9 +129,17 @@ export function serializeNotice(
   };
 }
 
-export function serializeMedia(
-  m: Media & { clubSlug: string },
-) {
+export type MediaBundle = {
+  id: string;
+  clubId: string;
+  clubSlug: string;
+  url: string;
+  caption: string | null;
+  category: string;
+  createdAt: Date;
+};
+
+export function serializeMedia(m: MediaBundle) {
   return {
     id: m.id,
     clubId: m.clubId,
@@ -115,40 +151,51 @@ export function serializeMedia(
   };
 }
 
-export function serializeMember(
-  mem: Membership & {
-    fullName: string;
-    email: string;
-    avatarUrl: string | null;
-    clubSlug: string;
-    clubName: string;
-  },
-) {
+export type MemberBundle = {
+  id: string;
+  userId: string;
+  clubId: string;
+  clubSlug: string;
+  clubName: string;
+  fullName: string;
+  email: string;
+  avatarUrl: string | null;
+  role: string;
+  joinedAt: Date;
+};
+
+export function serializeMember(m: MemberBundle) {
   return {
-    id: mem.id,
-    userId: mem.userId,
-    clubId: mem.clubId,
-    clubSlug: mem.clubSlug,
-    clubName: mem.clubName,
-    fullName: mem.fullName,
-    email: mem.email,
-    avatarUrl: mem.avatarUrl,
-    role: mem.role,
-    joinedAt: mem.joinedAt.toISOString(),
+    id: m.id,
+    userId: m.userId,
+    clubId: m.clubId,
+    clubSlug: m.clubSlug,
+    clubName: m.clubName,
+    fullName: m.fullName,
+    email: m.email,
+    avatarUrl: m.avatarUrl,
+    role: m.role,
+    joinedAt: m.joinedAt.toISOString(),
   };
 }
 
-export function serializeJoinRequest(
-  r: JoinRequest & {
-    clubSlug: string;
-    clubName: string;
-    fullName: string;
-    email: string;
-    studentId?: string | null;
-    department?: string | null;
-    batch?: string | null;
-  },
-) {
+export type JoinRequestBundle = {
+  id: string;
+  userId: string;
+  clubId: string;
+  clubSlug: string;
+  clubName: string;
+  fullName: string;
+  email: string;
+  studentId?: string | null;
+  department?: string | null;
+  batch?: string | null;
+  message?: string | null;
+  status: string;
+  createdAt: Date;
+};
+
+export function serializeJoinRequest(r: JoinRequestBundle) {
   return {
     id: r.id,
     userId: r.userId,
@@ -160,13 +207,26 @@ export function serializeJoinRequest(
     studentId: r.studentId ?? null,
     department: r.department ?? null,
     batch: r.batch ?? null,
-    message: r.message,
+    message: r.message ?? null,
     status: r.status,
     createdAt: r.createdAt.toISOString(),
   };
 }
 
-export function serializeUserPublic(u: User) {
+export type UserPublicBundle = {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  role: string;
+  studentId: string | null;
+  department: string | null;
+  batch: string | null;
+  avatarUrl: string | null;
+  createdAt: Date;
+};
+
+export function serializeUserPublic(u: UserPublicBundle) {
   return {
     id: u.id,
     username: u.username,

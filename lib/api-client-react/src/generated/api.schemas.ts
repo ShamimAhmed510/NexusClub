@@ -50,7 +50,7 @@ export const UserRole = {
 } as const;
 
 export interface User {
-  id: number;
+  id: string;
   username: string;
   fullName: string;
   email: string;
@@ -72,7 +72,7 @@ export interface AuthSession {
 }
 
 export interface Club {
-  id: number;
+  id: string;
   slug: string;
   name: string;
   category: string;
@@ -127,9 +127,9 @@ export const MemberRole = {
 } as const;
 
 export interface Member {
-  id: number;
-  userId: number;
-  clubId: number;
+  id: string;
+  userId: string;
+  clubId: string;
   clubSlug: string;
   clubName: string;
   fullName: string;
@@ -149,8 +149,8 @@ export const EventStatus = {
 } as const;
 
 export interface Event {
-  id: number;
-  clubId: number;
+  id: string;
+  clubId: string;
   clubSlug: string;
   clubName: string;
   title: string;
@@ -168,8 +168,8 @@ export interface Event {
 }
 
 export interface Post {
-  id: number;
-  clubId: number;
+  id: string;
+  clubId: string;
   clubSlug: string;
   clubName: string;
   title: string;
@@ -188,9 +188,9 @@ export const NoticeScope = {
 } as const;
 
 export interface Notice {
-  id: number;
+  id: string;
   /** @nullable */
-  clubId?: number | null;
+  clubId?: string | null;
   /** @nullable */
   clubSlug?: string | null;
   /** @nullable */
@@ -216,8 +216,8 @@ export const MediaItemCategory = {
 } as const;
 
 export interface MediaItem {
-  id: number;
-  clubId: number;
+  id: string;
+  clubId: string;
   clubSlug: string;
   url: string;
   /** @nullable */
@@ -241,9 +241,9 @@ export interface ViewerMembership {
   /** @nullable */
   role?: string | null;
   /** @nullable */
-  membershipId?: number | null;
+  membershipId?: string | null;
   /** @nullable */
-  requestId?: number | null;
+  requestId?: string | null;
 }
 
 export interface ClubDetail {
@@ -269,9 +269,9 @@ export const JoinRequestStatus = {
 } as const;
 
 export interface JoinRequest {
-  id: number;
-  userId: number;
-  clubId: number;
+  id: string;
+  userId: string;
+  clubId: string;
   clubSlug: string;
   clubName: string;
   fullName: string;

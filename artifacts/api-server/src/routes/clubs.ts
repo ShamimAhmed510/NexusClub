@@ -14,9 +14,9 @@ import {
 import {
   CreateClubBody,
   UpdateClubBody,
-  JoinClubBody,
-  DecisionBody,
-  UpdateRoleBody,
+  RequestJoinClubBody,
+  DecideJoinRequestBody,
+  UpdateMemberRoleBody,
   CreateEventBody,
   CreatePostBody,
   AddClubMediaBody,
@@ -470,7 +470,7 @@ router.post(
   requireAuth,
   async (req: Request, res: Response) => {
     const slug = String(req.params.slug);
-    const parsed = JoinClubBody.safeParse(req.body);
+    const parsed = RequestJoinClubBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid payload" });
       return;
@@ -586,7 +586,7 @@ router.post(
       res.status(400).json({ error: "Invalid id" });
       return;
     }
-    const parsed = DecisionBody.safeParse(req.body);
+    const parsed = DecideJoinRequestBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid payload" });
       return;
@@ -666,7 +666,7 @@ router.patch(
       res.status(400).json({ error: "Invalid id" });
       return;
     }
-    const parsed = UpdateRoleBody.safeParse(req.body);
+    const parsed = UpdateMemberRoleBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Invalid payload" });
       return;

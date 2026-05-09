@@ -8,6 +8,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import Clubs from "@/pages/clubs";
 import ClubDetail from "@/pages/club-detail";
 import Events from "@/pages/events";
@@ -24,6 +26,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/clubs" component={Clubs} />
       <Route path="/clubs/:slug" component={ClubDetail} />
       <Route path="/events" component={Events} />

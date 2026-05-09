@@ -11,6 +11,8 @@ const userSchema = new Schema(
     department: { type: String, default: null },
     batch: { type: String, default: null },
     avatarUrl: { type: String, default: null },
+    passwordResetToken: { type: String, default: null },
+    passwordResetExpires: { type: Date, default: null },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: false },

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { Event, EventRsvp, Membership, Club, User } from "@workspace/db";
 import { getCurrentUser, requireAuth } from "../lib/auth.js";
 import { serializeEvent, serializeUserPublic } from "../lib/serializers.js";
+import { createNotification } from "../lib/notify.js";
 
 const router: IRouter = Router();
 
@@ -200,6 +201,19 @@ router.post(
       return;
     }
     const club = await Club.findById((updated as any).clubId).lean();
+
+    // Notify the event creator of the decision
+    const creatorId = s((updated as any).createdById);
+    await createNotification({
+      recipientId: creatorId,
+      type: decision === "approved" ? "event_approved" : "event_rejected",
+      message:
+        decision === "approved"
+          ? `Your event "${(updated as any).title}" has been approved and is now public.`
+          : `Your event "${(updated as any).title}" was rejected by the overseer.`,
+      link: `/clubs/${(club as any)?.slug ?? ""}`,
+    });
+
     res.json(
       serializeEvent({
         id: s((updated as any)._id),

@@ -6,6 +6,7 @@ export { Membership, JoinRequest } from "./models/Membership.js";
 export { Notice } from "./models/Notice.js";
 export { Post } from "./models/Post.js";
 export { Media } from "./models/Media.js";
+export { Notification } from "./models/Notification.js";
 
 export type UserShape = {
   id: string;

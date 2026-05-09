@@ -4,6 +4,7 @@ import { Notice, Club, Membership } from "@workspace/db";
 import { CreateNoticeBody, ApproveNoticeBody } from "@workspace/api-zod";
 import { getCurrentUser, requireAuth } from "../lib/auth.js";
 import { serializeNotice } from "../lib/serializers.js";
+import { createNotification } from "../lib/notify.js";
 
 const router: IRouter = Router();
 
@@ -244,6 +245,17 @@ router.post(
       clubSlug = (club as any)?.slug ?? null;
       clubName = (club as any)?.name ?? null;
     }
+
+    // Notify the notice author of the decision
+    await createNotification({
+      recipientId: s((updated as any).authorId),
+      type: parsed.data.decision === "approved" ? "notice_approved" : "notice_rejected",
+      message:
+        parsed.data.decision === "approved"
+          ? `Your notice "${(updated as any).title}" has been approved and is now live.`
+          : `Your notice "${(updated as any).title}" was rejected by the overseer.`,
+      link: "/notices",
+    });
 
     res.json(
       serializeNotice({

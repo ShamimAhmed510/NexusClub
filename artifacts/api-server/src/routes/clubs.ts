@@ -31,6 +31,7 @@ import {
   serializeNotice,
   serializePost,
 } from "../lib/serializers.js";
+import { createNotification, createNotifications } from "../lib/notify.js";
 import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
@@ -506,6 +507,19 @@ router.post(
       message: parsed.data.message ?? null,
       status: "pending",
     });
+
+    // Notify all club admins about the new join request
+    const adminMemberships = await Membership.find({
+      clubId,
+      role: { $in: ["president", "vice_president", "secretary"] },
+    }).lean();
+    const adminIds = (adminMemberships as any[]).map((m: any) => s(m.userId));
+    await createNotifications(adminIds, {
+      type: "join_request",
+      message: `${user.fullName} has requested to join ${(club as any).name}.`,
+      link: `/clubs/${(club as any).slug}`,
+    });
+
     res.status(201).json(
       serializeJoinRequest({
         id: created._id.toString(),
@@ -636,6 +650,18 @@ router.post(
         });
       }
     }
+
+    // Notify the applicant of the decision
+    await createNotification({
+      recipientId: s((joinReq as any).userId),
+      type: decision === "approved" ? "join_approved" : "join_rejected",
+      message:
+        decision === "approved"
+          ? `Your request to join ${(club as any).name} has been approved! Welcome aboard.`
+          : `Your request to join ${(club as any).name} was not approved this time.`,
+      link: `/clubs/${(club as any).slug}`,
+    });
+
     const u = await User.findById((joinReq as any).userId).lean();
     res.json(
       serializeJoinRequest({

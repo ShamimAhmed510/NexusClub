@@ -7,7 +7,7 @@ import { CalendarIcon, BellIcon, UsersIcon, CheckCircleIcon, ClockIcon } from "l
 import { format } from "date-fns";
 
 export default function StudentDashboard() {
-  const { data: dashboard, isLoading } = useGetStudentDashboard();
+  const { data: dashboard, isLoading, isError, refetch } = useGetStudentDashboard();
 
   if (isLoading) {
     return (
@@ -21,10 +21,21 @@ export default function StudentDashboard() {
     );
   }
 
-  if (!dashboard) {
+  if (isError || !dashboard) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center text-muted-foreground">
-        Failed to load dashboard data.
+      <div className="container mx-auto px-4 py-16 max-w-md text-center">
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8">
+          <p className="font-semibold text-foreground mb-1">Could not load dashboard</p>
+          <p className="text-sm text-muted-foreground mb-6">
+            There was a problem fetching your dashboard data. This is often a temporary issue.
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }

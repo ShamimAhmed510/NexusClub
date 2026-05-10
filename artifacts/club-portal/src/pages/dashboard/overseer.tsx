@@ -88,7 +88,7 @@ interface MigrationStatus {
 }
 
 export default function OverseerDashboard() {
-  const { data: dashboard, isLoading } = useGetOverseerDashboard();
+  const { data: dashboard, isLoading, isError, refetch } = useGetOverseerDashboard();
   const { data: users } = useListUsers();
   const { data: clubs } = useListClubs();
 
@@ -304,7 +304,7 @@ export default function OverseerDashboard() {
 
   // ─── loading state ────────────────────────────────────────────────────────────
 
-  if (isLoading || !dashboard) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl space-y-8">
         <div className="flex items-center justify-between">
@@ -320,6 +320,25 @@ export default function OverseerDashboard() {
           ))}
         </div>
         <Skeleton className="h-[500px] rounded-xl" />
+      </div>
+    );
+  }
+
+  if (isError || !dashboard) {
+    return (
+      <div className="container mx-auto px-4 py-16 max-w-md text-center">
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8">
+          <p className="font-semibold text-foreground mb-1">Could not load overseer dashboard</p>
+          <p className="text-sm text-muted-foreground mb-6">
+            There was a problem fetching dashboard data. This may be a temporary server issue — please try again.
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }

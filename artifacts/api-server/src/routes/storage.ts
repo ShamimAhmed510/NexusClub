@@ -41,8 +41,22 @@ router.post(
       return;
     }
 
+    req.log.info(
+      {
+        userId: (await getCurrentUser(req))?.id,
+        cloudinaryEnabled,
+        bodyKeys: Object.keys(req.body ?? {}),
+        hasDataUri: typeof (req.body as any).dataUri === "string",
+        dataUriLength: typeof (req.body as any).dataUri === "string"
+          ? (req.body as any).dataUri.length
+          : 0,
+      },
+      "storage/upload: request received",
+    );
+
     const parsed = RequestUploadUrlBody.safeParse(req.body);
     if (!parsed.success) {
+      req.log.warn({ issues: parsed.error.issues }, "storage/upload: invalid body");
       res.status(400).json({ error: "Missing or invalid required fields" });
       return;
     }
@@ -51,6 +65,7 @@ router.post(
     const dataUri: string | undefined = (req.body as any).dataUri;
 
     if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
+      req.log.warn({ contentType }, "storage/upload: rejected content type");
       res.status(400).json({
         error: "Only image files (JPEG, PNG, WEBP, GIF) are allowed",
       });
@@ -58,14 +73,21 @@ router.post(
     }
 
     if (size > MAX_FILE_SIZE) {
+      req.log.warn({ size, MAX_FILE_SIZE }, "storage/upload: file too large");
       res.status(400).json({ error: "File size must be 5 MB or less" });
       return;
     }
+
+    req.log.info(
+      { name, size, contentType, cloudinaryEnabled, hasDataUri: !!dataUri },
+      "storage/upload: validation passed, proceeding",
+    );
 
     // ── Cloudinary path: upload directly and return permanent CDN URL ──
     if (cloudinaryEnabled && dataUri) {
       try {
         const secureUrl = await uploadToCloudinary(dataUri, "mu-portal");
+        req.log.info({ secureUrl }, "storage/upload: Cloudinary upload success");
         res.json(
           RequestUploadUrlResponse.parse({
             uploadURL: secureUrl,

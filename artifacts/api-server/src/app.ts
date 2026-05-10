@@ -57,8 +57,8 @@ app.use(
   }),
 );
 
-app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const sessionSecret = process.env["SESSION_SECRET"];
 if (!sessionSecret) {
@@ -93,5 +93,20 @@ app.use(
 );
 
 app.use("/api", router);
+
+app.use(
+  (
+    err: any,
+    _req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    if (err.type === "entity.too.large") {
+      res.status(413).json({ error: "File too large. Maximum upload size is 10 MB." });
+      return;
+    }
+    next(err);
+  },
+);
 
 export default app;

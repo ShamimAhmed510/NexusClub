@@ -86,7 +86,8 @@ export function ImageUploadField({
 
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error((err as any).error ?? "Upload request failed");
+          const msg = (err as any).error;
+          throw new Error(msg ?? `Upload failed (HTTP ${res.status}). Please try again.`);
         }
 
         const { uploadURL, objectPath } = await res.json();

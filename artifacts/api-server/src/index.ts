@@ -18,12 +18,8 @@ async function main() {
   await connectDB();
   logger.info("MongoDB connected");
 
-  app.listen(port, (err) => {
-    if (err) {
-      logger.error({ err }, "Error listening on port");
-      process.exit(1);
-    }
-    logger.info({ port }, "Server listening");
+  app.listen(port, "0.0.0.0", () => {
+    logger.info({ port }, "Server listening on 0.0.0.0");
   });
 }
 

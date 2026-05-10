@@ -1,0 +1,298 @@
+You are an Expert MERN Stack Architect & Production Deployment Engineer.
+
+Project Context:
+
+* This is a LIVE production MERN stack project already deployed.
+* Frontend is deployed on Vercel.
+* Backend is deployed on Render.
+* The project currently works on Replit/local environment but has deployment/authentication issues on Vercel.
+* IMPORTANT: Do NOT break, remove, or modify existing core functionalities, authentication logic, database schema, or current working routes unless absolutely necessary for compatibility.
+* Your task is to APPEND new features safely and fix deployment/authentication issues professionally.
+
+Main Objective:
+Implement the following features and fixes carefully while maintaining backward compatibility and production stability.
+
+====================================================
+PHASE 1 — FORGOT PASSWORD SYSTEM
+================================
+
+Add a complete Forgot Password feature WITHOUT changing existing login/signup logic.
+
+Requirements:
+
+1. Create separate new backend routes:
+
+   * POST /api/auth/forgot-password
+   * POST /api/auth/reset-password
+
+2. Create separate frontend pages/components:
+
+   * ForgotPassword.jsx
+   * ResetPassword.jsx
+
+3. Forgot Password Flow:
+
+   * User enters email
+   * Backend verifies account exists
+   * Generate secure reset token or OTP
+   * Send reset email using Nodemailer
+   * Email should contain secure reset link
+
+4. Reset Password Flow:
+
+   * User opens reset link
+   * User enters new password
+   * Password updates securely
+   * Token expires after a limited time
+
+5. Security Requirements:
+
+   * Hash passwords properly
+   * Use crypto/random token generation
+   * Add token expiry validation
+   * Prevent token reuse
+   * Do NOT expose whether email exists publicly
+
+6. Environment Variables:
+   Add necessary env variables safely:
+
+* EMAIL_USER
+* EMAIL_PASS
+* CLIENT_URL
+* JWT_SECRET
+* RESET_TOKEN_SECRET
+
+7. Nodemailer:
+   Use professional HTML email templates.
+   Example emails:
+
+* Password reset request
+* Password changed confirmation
+
+8. IMPORTANT:
+
+* Do NOT modify existing login/signup routes.
+* Add all new logic in separate controller/service files.
+* Keep architecture modular and production-ready.
+
+====================================================
+PHASE 2 — EMAIL NOTIFICATION SYSTEM
+===================================
+
+Add automated email notifications.
+
+A) Admin Notification:
+When a user submits a membership request:
+
+* Automatically send email to the related Club Admin
+* Include:
+
+  * User name
+  * Email
+  * Department
+  * Requested club
+
+B) User Status Notification:
+When admin approves/rejects membership:
+
+* Automatically send email to the user
+* Include:
+
+  * Approval/rejection status
+  * Club name
+  * Professional formatted message
+
+Requirements:
+
+* Use Nodemailer
+* Create reusable email service utilities
+* Clean HTML email templates
+* Avoid duplicate email sending
+* Add proper error handling/logging
+
+====================================================
+PHASE 3 — FIX DEPLOYMENT & AUTHENTICATION ISSUES
+================================================
+
+Current Issues:
+
+* 401 Unauthorized on:
+
+  * /api/auth/me
+  * /api/users
+
+* 405 Method Not Allowed on:
+
+  * /api/auth/forgot-password
+
+Fix ALL deployment/authentication problems safely.
+
+====================================================
+TASK A — TOKEN STORAGE FIX
+==========================
+
+Currently using sessionStorage.
+
+Change authentication persistence to localStorage:
+
+* Save token in localStorage
+* Retrieve token on app startup
+* Maintain login after browser/tab close
+* Do NOT break current auth flow
+
+Update:
+
+* AuthContext / AuthProvider
+* Protected routes
+* Axios interceptors if needed
+
+====================================================
+TASK B — AUTHORIZATION HEADER FIX
+=================================
+
+Ensure EVERY API request includes:
+Authorization: Bearer <token>
+
+Requirements:
+
+* Configure Axios instance centrally
+* Automatically attach token from localStorage
+* Handle token expiration gracefully
+* Redirect to login if unauthorized
+
+====================================================
+TASK C — FIX FORGOT PASSWORD API METHOD
+=======================================
+
+Fix frontend/backend mismatch:
+
+* Ensure frontend uses:
+  POST /api/auth/forgot-password
+
+* Ensure Express router supports POST method properly
+
+* Verify route registration order
+
+====================================================
+TASK D — APP INITIAL AUTH CHECK
+===============================
+
+On app startup:
+
+* Retrieve token from localStorage
+* Validate token
+* Fetch current user using /api/auth/me
+* Restore authentication state automatically
+
+====================================================
+PHASE 4 — CORS & COOKIE FIXES
+=============================
+
+Fix cross-domain issues between:
+
+* Vercel frontend
+* Render backend
+
+Requirements:
+
+1. Update Express CORS config:
+
+* Allow Vercel domain
+* credentials: true
+* Proper allowed headers/methods
+
+2. Cookie Compatibility:
+   If cookies are used:
+
+* sameSite: "none"
+* secure: true
+* httpOnly where needed
+
+3. Frontend API Requests:
+
+* withCredentials: true if using cookies
+
+4. Environment Variables:
+   Ensure frontend uses deployed backend URL:
+   Example:
+   VITE_API_URL=[https://your-render-backend.onrender.com](https://your-render-backend.onrender.com)
+
+Remove all localhost dependency from production build.
+
+====================================================
+PHASE 5 — VITE PERFORMANCE OPTIMIZATION
+=======================================
+
+Current Issue:
+Build warning:
+"Some chunks are larger than 500kB"
+
+Optimize frontend build safely.
+
+Requirements:
+
+1. Update vite.config.ts
+2. Configure:
+
+* manualChunks
+* dynamic imports
+* lazy loading for heavy pages
+
+3. Split vendor packages:
+
+* react
+* react-router
+* charts/editors if present
+
+4. Improve loading performance
+5. Do NOT break routing or functionality
+
+====================================================
+PHASE 6 — CODE QUALITY & SAFETY
+===============================
+
+IMPORTANT RULES:
+
+* DO NOT rewrite the whole project
+* DO NOT remove existing logic
+* ONLY append and safely integrate
+* Keep backward compatibility
+* Follow scalable folder structure
+* Add comments where necessary
+* Use async/await with try/catch
+* Add proper validation
+* Avoid duplicate APIs
+* Ensure production-safe implementation
+
+====================================================
+EXPECTED OUTPUT
+===============
+
+Please:
+
+1. Analyze current project structure first
+
+2. Identify exact files needing changes
+
+3. Implement features step-by-step
+
+4. Show all modified/new files clearly
+
+5. Generate production-ready code
+
+6. Ensure project works both:
+
+   * locally
+   * on Vercel + Render deployment
+
+7. After implementation:
+   Provide:
+
+* Updated .env.example
+* Deployment instructions
+* Any required Render/Vercel settings
+* Testing steps
+
+MOST IMPORTANT:
+Do NOT break any existing functionality.
+Preserve all current database logic, routes, UI behavior, and authentication flow while integrating these new features safely.

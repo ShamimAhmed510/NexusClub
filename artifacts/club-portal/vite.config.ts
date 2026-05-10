@@ -48,6 +48,36 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/scheduler")) {
+            return "react-core";
+          }
+          if (id.includes("node_modules/@radix-ui")) {
+            return "radix-ui";
+          }
+          if (id.includes("node_modules/recharts") || id.includes("node_modules/d3-") || id.includes("node_modules/victory-")) {
+            return "charts";
+          }
+          if (id.includes("node_modules/framer-motion")) {
+            return "framer-motion";
+          }
+          if (id.includes("node_modules/@tanstack")) {
+            return "tanstack";
+          }
+          if (id.includes("node_modules/lucide-react")) {
+            return "lucide";
+          }
+          if (id.includes("node_modules/date-fns")) {
+            return "date-fns";
+          }
+          if (id.includes("node_modules/")) {
+            return "vendor";
+          }
+        },
+      },
+    },
   },
   server: {
     port,

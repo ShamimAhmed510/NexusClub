@@ -32,7 +32,7 @@ import {
   serializePost,
 } from "../lib/serializers.js";
 import { createNotification, createNotifications } from "../lib/notify.js";
-import { sendMembershipDecisionEmail } from "../lib/mailer.js";
+import { sendMembershipDecisionEmail, sendJoinRequestAdminEmail } from "../lib/mailer.js";
 import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
@@ -520,6 +520,29 @@ router.post(
       message: `${user.fullName} has requested to join ${(club as any).name}.`,
       link: `/clubs/${(club as any).slug}`,
     });
+
+    // Send email notification to each club admin
+    if (adminIds.length > 0) {
+      const adminUsers = await User.find({ _id: { $in: adminIds } })
+        .select("fullName email")
+        .lean();
+      const emailPromises = (adminUsers as any[]).map((adminUser: any) =>
+        sendJoinRequestAdminEmail({
+          to: adminUser.email as string,
+          adminFullName: adminUser.fullName as string,
+          applicantFullName: user.fullName,
+          applicantEmail: user.email,
+          applicantDepartment: user.department ?? null,
+          applicantStudentId: user.studentId ?? null,
+          clubName: (club as any).name,
+          clubSlug: (club as any).slug,
+          message: parsed.data.message ?? null,
+        }).catch((err: unknown) => {
+          req.log.warn({ err, adminEmail: adminUser.email }, "Failed to send join request admin email");
+        }),
+      );
+      await Promise.all(emailPromises);
+    }
 
     res.status(201).json(
       serializeJoinRequest({

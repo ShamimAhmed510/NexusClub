@@ -470,6 +470,133 @@ export async function sendNoticeDecisionEmail(
   logger.info({ to: opts.to, noticeTitle: opts.noticeTitle, decision: opts.decision }, "Notice decision email sent");
 }
 
+export interface JoinRequestAdminEmailOptions {
+  to: string;
+  adminFullName: string;
+  applicantFullName: string;
+  applicantEmail: string;
+  applicantDepartment?: string | null;
+  applicantStudentId?: string | null;
+  clubName: string;
+  clubSlug: string;
+  message?: string | null;
+  portalBaseUrl?: string;
+}
+
+function buildJoinRequestAdminHtml(
+  adminFullName: string,
+  applicantFullName: string,
+  applicantEmail: string,
+  applicantDepartment: string | null,
+  applicantStudentId: string | null,
+  clubName: string,
+  clubUrl: string,
+  message: string | null,
+): string {
+  const rows = [
+    { label: "Name", value: applicantFullName },
+    { label: "Email", value: applicantEmail },
+    ...(applicantDepartment ? [{ label: "Department", value: applicantDepartment }] : []),
+    ...(applicantStudentId ? [{ label: "Student ID", value: applicantStudentId }] : []),
+  ];
+
+  const rowsHtml = rows
+    .map(
+      (r) =>
+        `<tr>
+          <td style="padding:8px 12px;font-size:13px;font-weight:600;color:#6b7280;white-space:nowrap;border-bottom:1px solid #f3f4f6;">${r.label}</td>
+          <td style="padding:8px 12px;font-size:13px;color:#111827;border-bottom:1px solid #f3f4f6;">${r.value}</td>
+        </tr>`,
+    )
+    .join("");
+
+  const messageSection = message
+    ? `<div style="background:#f3f4f6;border-left:4px solid #4f46e5;border-radius:8px;padding:12px 16px;margin:20px 0;font-size:13px;color:#374151;line-height:1.6;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;font-weight:600;margin-bottom:6px;">Message from applicant</div>
+        ${message}
+      </div>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>New Membership Request — ${clubName}</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f2f8;font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:540px;margin:40px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(67,56,202,0.10);">
+    <div style="background:linear-gradient(135deg,#3730a3 0%,#4f46e5 50%,#6366f1 100%);padding:40px 32px 32px;text-align:center;">
+      <div style="display:inline-block;width:52px;height:52px;background:rgba(255,255,255,0.15);border-radius:14px;line-height:52px;text-align:center;color:white;font-weight:800;font-size:18px;letter-spacing:1px;margin-bottom:16px;">MU</div>
+      <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">New Membership Request</h1>
+      <p style="margin:8px 0 0;color:rgba(255,255,255,0.75);font-size:14px;">${clubName} · Metropolitan University Club Portal</p>
+    </div>
+    <div style="padding:36px 32px;">
+      <p style="font-size:16px;color:#1e1b4b;font-weight:600;margin-bottom:12px;">Hello, ${adminFullName}!</p>
+      <p style="font-size:14px;color:#4b5563;line-height:1.7;margin-bottom:24px;">
+        A student has submitted a membership request to join <strong>${clubName}</strong>. Review the details below and approve or reject from your Club Admin dashboard.
+      </p>
+      <div style="background:#f9fafb;border-radius:10px;overflow:hidden;margin-bottom:20px;">
+        <table style="width:100%;border-collapse:collapse;">
+          ${rowsHtml}
+        </table>
+      </div>
+      ${messageSection}
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${clubUrl}" style="display:inline-block;background:linear-gradient(135deg,#3730a3,#4f46e5);color:#ffffff;text-decoration:none;padding:14px 36px;border-radius:10px;font-size:15px;font-weight:700;letter-spacing:0.3px;box-shadow:0 6px 20px rgba(67,56,202,0.35);">
+          Review Request
+        </a>
+      </div>
+      <p style="font-size:13px;color:#6b7280;margin:0;">
+        This is an automated notification from the MU Club Portal. Please do not reply to this email.
+      </p>
+    </div>
+    <div style="background:#f9fafb;padding:20px 32px;text-align:center;">
+      <p style="margin:0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} Metropolitan University. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendJoinRequestAdminEmail(
+  opts: JoinRequestAdminEmailOptions,
+): Promise<void> {
+  const transport = await createTransporter();
+
+  if (!transport) {
+    logger.warn(
+      { to: opts.to, clubName: opts.clubName },
+      "Email not configured — join request admin email skipped.",
+    );
+    return;
+  }
+
+  const { transporter, fromAddress } = transport;
+
+  const baseUrl = opts.portalBaseUrl ?? process.env["PORTAL_BASE_URL"] ?? "";
+  const clubUrl = `${baseUrl}/clubs/${opts.clubSlug}`;
+
+  await transporter.sendMail({
+    from: fromAddress,
+    to: opts.to,
+    subject: `New membership request for ${opts.clubName} from ${opts.applicantFullName}`,
+    html: buildJoinRequestAdminHtml(
+      opts.adminFullName,
+      opts.applicantFullName,
+      opts.applicantEmail,
+      opts.applicantDepartment ?? null,
+      opts.applicantStudentId ?? null,
+      opts.clubName,
+      clubUrl,
+      opts.message ?? null,
+    ),
+    text: `Hello ${opts.adminFullName},\n\n${opts.applicantFullName} (${opts.applicantEmail}) has requested to join ${opts.clubName}.\n\nReview the request here:\n${clubUrl}`,
+  });
+
+  logger.info({ to: opts.to, clubName: opts.clubName, applicant: opts.applicantFullName }, "Join request admin email sent");
+}
+
 export async function sendMembershipDecisionEmail(
   opts: MembershipDecisionEmailOptions,
 ): Promise<void> {

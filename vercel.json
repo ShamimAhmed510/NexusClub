@@ -4,10 +4,13 @@
   "outputDirectory": "artifacts/club-portal/dist/public",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
+  "env": {
+    "BASE_PATH": "/"
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://YOUR-API-BACKEND-URL/api/:path*"
+      "destination": "https://REPLACE_WITH_YOUR_API_URL/api/:path*"
     },
     {
       "source": "/(.*)",

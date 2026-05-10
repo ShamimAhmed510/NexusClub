@@ -2,50 +2,41 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+// PORT is only needed for the dev / preview server, not during `vite build`.
+// Vercel does not provide PORT at build time — default to 3000 as a safe fallback.
 const rawPort = process.env.PORT;
+const port = rawPort ? Number(rawPort) : 3000;
 
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
+// BASE_PATH controls the router base and asset prefix.
+// Replit injects this; Vercel deploys at root "/".
+const basePath = process.env.BASE_PATH ?? "/";
 
-const port = Number(rawPort);
+// Replit-only plugins: runtime error overlay, cartographer, dev banner.
+// These use Replit-specific sourcemap infrastructure that does not exist in
+// other CI / build environments (Vercel, GitHub Actions, etc.), causing
+// "Error when using sourcemap" build failures. Guard strictly to Replit dev.
+const isReplitDev =
+  process.env.NODE_ENV !== "production" &&
+  process.env.REPL_ID !== undefined;
 
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    "BASE_PATH environment variable is required but was not provided.",
-  );
-}
+const replitPlugins = isReplitDev
+  ? await Promise.all([
+      import("@replit/vite-plugin-runtime-error-modal").then((m) =>
+        m.default(),
+      ),
+      import("@replit/vite-plugin-cartographer").then((m) =>
+        m.cartographer({
+          root: path.resolve(import.meta.dirname, ".."),
+        }),
+      ),
+      import("@replit/vite-plugin-dev-banner").then((m) => m.devBanner()),
+    ])
+  : [];
 
 export default defineConfig({
   base: basePath,
-  plugins: [
-    react(),
-    tailwindcss(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer({
-              root: path.resolve(import.meta.dirname, ".."),
-            }),
-          ),
-          await import("@replit/vite-plugin-dev-banner").then((m) =>
-            m.devBanner(),
-          ),
-        ]
-      : []),
-  ],
+  plugins: [react(), tailwindcss(), ...replitPlugins],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),

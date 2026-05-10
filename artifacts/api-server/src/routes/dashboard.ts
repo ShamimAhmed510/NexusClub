@@ -53,7 +53,8 @@ router.get(
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-
+    req.log.info({ userId: user.id, role: user.role }, "dashboard/student: request");
+    try {
     const [memberships, pendingJoinReqs] = await Promise.all([
       Membership.find({ userId: user.id }).lean(),
       JoinRequest.find({ userId: user.id, status: "pending" }).lean(),
@@ -179,7 +180,15 @@ router.get(
       });
     });
 
-    res.json({ joinedClubs, pendingRequests, upcomingEvents, recentNotices });
+      req.log.info(
+        { userId: user.id, joinedClubs: joinedClubs.length, upcomingEvents: upcomingEvents.length },
+        "dashboard/student: response OK",
+      );
+      res.json({ joinedClubs, pendingRequests, upcomingEvents, recentNotices });
+    } catch (err) {
+      req.log.error({ err, userId: user.id, role: user.role }, "dashboard/student: query error");
+      res.status(500).json({ error: "Failed to load dashboard data" });
+    }
   },
 );
 
@@ -207,14 +216,26 @@ router.get(
     const mem = await Membership.findOne({ userId: user.id, clubId }).lean();
 
     if (!mem && user.role !== "overseer") {
+      req.log.warn(
+        { userId: user.id, role: user.role, slug, clubId },
+        "dashboard/club-admin: no membership found, access denied",
+      );
       res.status(403).json({ error: "Forbidden" });
       return;
     }
     if (mem && !adminRoles.includes((mem as any).role) && user.role !== "overseer") {
+      req.log.warn(
+        { userId: user.id, role: user.role, slug, clubId, memberRole: (mem as any).role },
+        "dashboard/club-admin: non-admin membership role, access denied",
+      );
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-
+    req.log.info(
+      { userId: user.id, role: user.role, slug, clubId, memberRole: mem ? (mem as any).role : null },
+      "dashboard/club-admin: request",
+    );
+    try {
     const now = new Date();
     const [memberships, pendingReqs, upcomingEv, pendingEv, recentPosts, notices] =
       await Promise.all([
@@ -361,6 +382,10 @@ router.get(
       recentPosts: posts,
       notices: noticesSerialized,
     });
+    } catch (err) {
+      req.log.error({ err, userId: user.id, role: user.role, slug }, "dashboard/club-admin: query error");
+      res.status(500).json({ error: "Failed to load club dashboard data" });
+    }
   },
 );
 
@@ -374,10 +399,15 @@ router.get(
   async (req: Request, res: Response) => {
     const user = await getCurrentUser(req);
     if (!user || user.role !== "overseer") {
+      req.log.warn(
+        { userId: user?.id, role: user?.role },
+        "dashboard/overseer: forbidden — user not authenticated or not overseer",
+      );
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-
+    req.log.info({ userId: user.id, role: user.role }, "dashboard/overseer: request");
+    try {
     const now = new Date();
 
     const [
@@ -568,6 +598,10 @@ router.get(
       recentRequests,
       recentNotices,
     });
+    } catch (err) {
+      req.log.error({ err, userId: user.id, role: user.role }, "dashboard/overseer: query error");
+      res.status(500).json({ error: "Failed to load overseer dashboard data" });
+    }
   },
 );
 

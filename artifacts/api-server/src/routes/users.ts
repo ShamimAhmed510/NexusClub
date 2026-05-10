@@ -130,8 +130,14 @@ router.post(
       row = row.toObject();
     }
 
-    if ((u as any).role === "student" && parsed.data.role !== "member") {
+    const currentRole = (u as any).role as string;
+    const isLeadershipRole = parsed.data.role !== "member";
+    if (isLeadershipRole && currentRole !== "overseer" && currentRole !== "club_admin") {
       await User.findByIdAndUpdate(id, { role: "club_admin" });
+      req.log.info(
+        { targetUserId: id, previousRole: currentRole, membershipRole: parsed.data.role },
+        "assign-club-admin: upgraded user role to club_admin",
+      );
     }
 
     res.json(

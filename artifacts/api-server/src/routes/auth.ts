@@ -39,6 +39,10 @@ router.post("/auth/login", async (req: Request, res: Response) => {
     return;
   }
   const adminClubSlugs = await adminClubSlugsForUser(user.id);
+  req.log.info(
+    { userId: user.id, role: user.role, adminClubSlugCount: adminClubSlugs.length },
+    "auth/login: session created",
+  );
   res.json({ user: serializeUser(user), adminClubSlugs });
 });
 
@@ -104,6 +108,10 @@ router.get("/auth/me", requireAuth, async (req: Request, res: Response) => {
     return;
   }
   const adminClubSlugs = await adminClubSlugsForUser(user.id);
+  req.log.info(
+    { userId: user.id, role: user.role, adminClubSlugs },
+    "auth/me: session resolved",
+  );
   res.json({ user: serializeUser(user), adminClubSlugs });
 });
 

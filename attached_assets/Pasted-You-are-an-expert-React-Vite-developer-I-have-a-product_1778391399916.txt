@@ -1,0 +1,38 @@
+You are an expert React + Vite developer. I have a production React app deployed on Vercel that is showing a white screen with this exact error:
+
+"Uncaught TypeError: f.map is not a function" 
+at index-BRRwmtM5.js:53 (production build)
+
+The app works fine locally in development but fails in production. 
+
+### Important Information:
+- Backend is already deployed and fully running without any issues.
+- The problem is only in the Frontend.
+- API calls are working correctly from backend, but frontend is not handling the response/data safely in production.
+
+### Strict Rules (Must Follow):
+- Do NOT change any existing features, UI design, logic, or behavior.
+- Do NOT modify any API calls, endpoints, axios/fetch logic, or backend-related code.
+- Do NOT remove or refactor any working functionality.
+- Only add defensive/safe guards to prevent the ".map is not a function" error.
+- Ensure the fix works perfectly in production (Vercel) and doesn't create new build warnings or errors.
+- Check the entire project thoroughly (A-Z) for similar risks.
+
+### Task:
+1. Search the entire `src/` folder for all `.map(` usages.
+2. Identify the exact location causing the production crash (most likely data/state is `undefined` or `null` initially in production build).
+3. Fix it using safe methods only:
+   - `data?.map(...) || []`
+   - `Array.isArray(data) ? data.map(...) : []`
+   - Initialize `useState([])` where needed
+4. Pay special attention to components like: label, dropdown-menu, sheet, avatar, any lists, tables, cards, etc.
+
+Please:
+- Show the exact file name and line number of the problematic code.
+- Give the before and after code snippet.
+- Mention any other similar risky `.map()` places and give safe versions (as preventive fix).
+- Give a clean summary of all changes at the end.
+
+Be very conservative — minimum necessary changes only. I want the app to work smoothly on Vercel without white screen and without breaking any existing features.
+
+Start by searching for all .map( usages in the project.

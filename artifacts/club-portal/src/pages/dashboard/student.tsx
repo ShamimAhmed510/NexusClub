@@ -29,7 +29,7 @@ export default function StudentDashboard() {
     );
   }
 
-  const { joinedClubs, pendingRequests, upcomingEvents, recentNotices } = dashboard;
+  const { joinedClubs = [], pendingRequests = [], upcomingEvents = [], recentNotices = [] } = dashboard;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">

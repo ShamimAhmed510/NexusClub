@@ -324,7 +324,7 @@ export default function OverseerDashboard() {
     );
   }
 
-  const { totals, clubsByMembers, pendingEvents, pendingNotices, recentRequests, recentNotices } =
+  const { totals, clubsByMembers = [], pendingEvents = [], pendingNotices = [], recentRequests = [], recentNotices = [] } =
     dashboard;
 
   const pendingCount = pendingEvents.length + pendingNotices.length;

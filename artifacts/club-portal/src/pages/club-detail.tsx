@@ -69,7 +69,7 @@ export default function ClubDetail() {
     );
   }
 
-  const { club, leadership, members, upcomingEvents, pastEvents, posts, notices, achievements, gallery, viewerMembership } = clubDetail;
+  const { club, leadership = [], members = [], upcomingEvents = [], pastEvents = [], posts = [], notices = [], achievements = [], gallery = [], viewerMembership } = clubDetail;
   const accent = club.accentColor || "#7c3aed";
 
   const handleJoin = () => {

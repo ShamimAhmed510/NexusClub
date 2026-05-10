@@ -78,7 +78,7 @@ export default function ClubAdminDashboard({ slug }: { slug: string }) {
     );
   }
 
-  const { club, members, pendingRequests, upcomingEvents, pendingEvents, recentPosts, notices } = dashboard;
+  const { club, members = [], pendingRequests = [], upcomingEvents = [], pendingEvents = [], recentPosts = [], notices = [] } = dashboard;
 
   const handleDecision = (id: string, decision: DecisionBodyDecision) => {
     decideJoinRequest({ id, data: { decision } }, {

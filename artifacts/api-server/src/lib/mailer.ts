@@ -15,6 +15,26 @@ export interface MembershipDecisionEmailOptions {
   portalBaseUrl?: string;
 }
 
+export interface EventDecisionEmailOptions {
+  to: string;
+  fullName: string;
+  eventTitle: string;
+  clubName: string;
+  clubSlug: string;
+  decision: "approved" | "rejected";
+  portalBaseUrl?: string;
+}
+
+export interface NoticeDecisionEmailOptions {
+  to: string;
+  fullName: string;
+  noticeTitle: string;
+  clubName: string;
+  clubSlug: string;
+  decision: "approved" | "rejected";
+  portalBaseUrl?: string;
+}
+
 function buildResetHtml(fullName: string, resetUrl: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -152,6 +172,172 @@ function buildMembershipDecisionHtml(
 </html>`;
 }
 
+function buildEventDecisionHtml(
+  fullName: string,
+  eventTitle: string,
+  clubName: string,
+  decision: "approved" | "rejected",
+  clubUrl: string,
+): string {
+  const isApproved = decision === "approved";
+  const accentColor = isApproved ? "#16a34a" : "#dc2626";
+  const headerGradient = isApproved
+    ? "linear-gradient(135deg, #14532d 0%, #16a34a 50%, #22c55e 100%)"
+    : "linear-gradient(135deg, #7f1d1d 0%, #dc2626 50%, #ef4444 100%)";
+  const statusBadgeBg = isApproved ? "#dcfce7" : "#fee2e2";
+  const statusBadgeBorder = isApproved ? "#bbf7d0" : "#fecaca";
+  const statusBadgeColor = isApproved ? "#166534" : "#991b1b";
+  const statusIcon = isApproved ? "✅" : "❌";
+  const statusLabel = isApproved ? "Approved" : "Rejected";
+  const bodyText = isApproved
+    ? `Great news! Your event <strong>"${eventTitle}"</strong> for <strong>${clubName}</strong> has been <strong>approved</strong> by the Overseer and is now live on the portal. Students can see it and RSVP.`
+    : `Your event <strong>"${eventTitle}"</strong> for <strong>${clubName}</strong> has been <strong>rejected</strong> by the Overseer. You may edit and resubmit a revised version from your Club Admin dashboard.`;
+  const buttonText = isApproved ? "View Club Events" : "Go to Dashboard";
+  const buttonUrl = isApproved ? clubUrl : "/dashboard";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event ${statusLabel} — ${eventTitle}</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f0f2f8; font-family: 'Segoe UI', Arial, sans-serif; }
+    .wrapper { max-width: 540px; margin: 40px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+    .header { background: ${headerGradient}; padding: 40px 32px 32px; text-align: center; }
+    .logo { display: inline-block; width: 52px; height: 52px; background: rgba(255,255,255,0.15); border-radius: 14px; line-height: 52px; text-align: center; color: white; font-weight: 800; font-size: 18px; letter-spacing: 1px; margin-bottom: 16px; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    .header p { margin: 8px 0 0; color: rgba(255,255,255,0.80); font-size: 14px; }
+    .body { padding: 36px 32px; }
+    .greeting { font-size: 16px; color: #1e1b4b; font-weight: 600; margin-bottom: 16px; }
+    .status-badge { display: inline-block; background: ${statusBadgeBg}; border: 1px solid ${statusBadgeBorder}; color: ${statusBadgeColor}; border-radius: 9999px; padding: 6px 18px; font-size: 14px; font-weight: 700; margin-bottom: 20px; }
+    .text { font-size: 14px; color: #4b5563; line-height: 1.7; margin-bottom: 28px; }
+    .item-box { background: #f3f4f6; border-left: 4px solid ${accentColor}; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; }
+    .item-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; font-weight: 600; margin-bottom: 4px; }
+    .item-box .value { font-size: 15px; font-weight: 700; color: #111827; }
+    .item-box .sub { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    .btn-wrap { text-align: center; margin: 28px 0; }
+    .btn { display: inline-block; background: ${accentColor}; color: #ffffff !important; text-decoration: none; padding: 14px 36px; border-radius: 10px; font-size: 15px; font-weight: 700; letter-spacing: 0.3px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+    .footer { background: #f9fafb; padding: 20px 32px; text-align: center; }
+    .footer p { margin: 0; font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="logo">MU</div>
+      <h1>Event ${statusLabel}</h1>
+      <p>Metropolitan University Club Portal</p>
+    </div>
+    <div class="body">
+      <p class="greeting">Hello, ${fullName}!</p>
+      <div class="status-badge">${statusIcon} ${statusLabel}</div>
+      <div class="item-box">
+        <div class="label">Event</div>
+        <div class="value">${eventTitle}</div>
+        <div class="sub">${clubName}</div>
+      </div>
+      <p class="text">${bodyText}</p>
+      <div class="btn-wrap">
+        <a href="${buttonUrl}" class="btn">${buttonText}</a>
+      </div>
+      <hr class="divider" />
+      <p class="text" style="margin-bottom:0; font-size:13px; color:#6b7280;">
+        This is an automated message from the MU Club Portal. Please do not reply to this email.
+      </p>
+    </div>
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} Metropolitan University. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function buildNoticeDecisionHtml(
+  fullName: string,
+  noticeTitle: string,
+  clubName: string,
+  decision: "approved" | "rejected",
+  clubUrl: string,
+): string {
+  const isApproved = decision === "approved";
+  const accentColor = isApproved ? "#16a34a" : "#dc2626";
+  const headerGradient = isApproved
+    ? "linear-gradient(135deg, #14532d 0%, #16a34a 50%, #22c55e 100%)"
+    : "linear-gradient(135deg, #7f1d1d 0%, #dc2626 50%, #ef4444 100%)";
+  const statusBadgeBg = isApproved ? "#dcfce7" : "#fee2e2";
+  const statusBadgeBorder = isApproved ? "#bbf7d0" : "#fecaca";
+  const statusBadgeColor = isApproved ? "#166534" : "#991b1b";
+  const statusIcon = isApproved ? "✅" : "❌";
+  const statusLabel = isApproved ? "Approved" : "Rejected";
+  const bodyText = isApproved
+    ? `Your notice <strong>"${noticeTitle}"</strong> for <strong>${clubName}</strong> has been <strong>approved</strong> by the Overseer and is now visible to club members and visitors on the portal.`
+    : `Your notice <strong>"${noticeTitle}"</strong> for <strong>${clubName}</strong> has been <strong>rejected</strong> by the Overseer. You may revise and resubmit it from your Club Admin dashboard.`;
+  const buttonText = isApproved ? "View Club Notices" : "Go to Dashboard";
+  const buttonUrl = isApproved ? clubUrl : "/dashboard";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notice ${statusLabel} — ${noticeTitle}</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f0f2f8; font-family: 'Segoe UI', Arial, sans-serif; }
+    .wrapper { max-width: 540px; margin: 40px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+    .header { background: ${headerGradient}; padding: 40px 32px 32px; text-align: center; }
+    .logo { display: inline-block; width: 52px; height: 52px; background: rgba(255,255,255,0.15); border-radius: 14px; line-height: 52px; text-align: center; color: white; font-weight: 800; font-size: 18px; letter-spacing: 1px; margin-bottom: 16px; }
+    .header h1 { margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    .header p { margin: 8px 0 0; color: rgba(255,255,255,0.80); font-size: 14px; }
+    .body { padding: 36px 32px; }
+    .greeting { font-size: 16px; color: #1e1b4b; font-weight: 600; margin-bottom: 16px; }
+    .status-badge { display: inline-block; background: ${statusBadgeBg}; border: 1px solid ${statusBadgeBorder}; color: ${statusBadgeColor}; border-radius: 9999px; padding: 6px 18px; font-size: 14px; font-weight: 700; margin-bottom: 20px; }
+    .text { font-size: 14px; color: #4b5563; line-height: 1.7; margin-bottom: 28px; }
+    .item-box { background: #f3f4f6; border-left: 4px solid ${accentColor}; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; }
+    .item-box .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; font-weight: 600; margin-bottom: 4px; }
+    .item-box .value { font-size: 15px; font-weight: 700; color: #111827; }
+    .item-box .sub { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    .btn-wrap { text-align: center; margin: 28px 0; }
+    .btn { display: inline-block; background: ${accentColor}; color: #ffffff !important; text-decoration: none; padding: 14px 36px; border-radius: 10px; font-size: 15px; font-weight: 700; letter-spacing: 0.3px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+    .footer { background: #f9fafb; padding: 20px 32px; text-align: center; }
+    .footer p { margin: 0; font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="logo">MU</div>
+      <h1>Notice ${statusLabel}</h1>
+      <p>Metropolitan University Club Portal</p>
+    </div>
+    <div class="body">
+      <p class="greeting">Hello, ${fullName}!</p>
+      <div class="status-badge">${statusIcon} ${statusLabel}</div>
+      <div class="item-box">
+        <div class="label">Notice</div>
+        <div class="value">${noticeTitle}</div>
+        <div class="sub">${clubName}</div>
+      </div>
+      <p class="text">${bodyText}</p>
+      <div class="btn-wrap">
+        <a href="${buttonUrl}" class="btn">${buttonText}</a>
+      </div>
+      <hr class="divider" />
+      <p class="text" style="margin-bottom:0; font-size:13px; color:#6b7280;">
+        This is an automated message from the MU Club Portal. Please do not reply to this email.
+      </p>
+    </div>
+    <div class="footer">
+      <p>&copy; ${new Date().getFullYear()} Metropolitan University. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 async function createTransporter() {
   const nodemailer = await import("nodemailer");
 
@@ -210,6 +396,78 @@ export async function sendPasswordResetEmail(opts: ResetEmailOptions): Promise<v
   });
 
   logger.info({ to: opts.to }, "Password reset email sent");
+}
+
+export async function sendEventDecisionEmail(
+  opts: EventDecisionEmailOptions,
+): Promise<void> {
+  const transport = await createTransporter();
+
+  if (!transport) {
+    logger.warn(
+      { to: opts.to, eventTitle: opts.eventTitle, decision: opts.decision },
+      "Email not configured — event decision email skipped.",
+    );
+    return;
+  }
+
+  const { transporter, fromAddress } = transport;
+
+  const baseUrl = opts.portalBaseUrl ?? process.env["PORTAL_BASE_URL"] ?? "";
+  const clubUrl = `${baseUrl}/clubs/${opts.clubSlug}`;
+  const subject =
+    opts.decision === "approved"
+      ? `Event Approved: "${opts.eventTitle}" is now live`
+      : `Event Update: "${opts.eventTitle}" was not approved`;
+
+  await transporter.sendMail({
+    from: fromAddress,
+    to: opts.to,
+    subject,
+    html: buildEventDecisionHtml(opts.fullName, opts.eventTitle, opts.clubName, opts.decision, clubUrl),
+    text:
+      opts.decision === "approved"
+        ? `Hello ${opts.fullName},\n\nYour event "${opts.eventTitle}" for ${opts.clubName} has been approved and is now live on the MU Club Portal.`
+        : `Hello ${opts.fullName},\n\nYour event "${opts.eventTitle}" for ${opts.clubName} was rejected by the Overseer. You may revise and resubmit from your dashboard.`,
+  });
+
+  logger.info({ to: opts.to, eventTitle: opts.eventTitle, decision: opts.decision }, "Event decision email sent");
+}
+
+export async function sendNoticeDecisionEmail(
+  opts: NoticeDecisionEmailOptions,
+): Promise<void> {
+  const transport = await createTransporter();
+
+  if (!transport) {
+    logger.warn(
+      { to: opts.to, noticeTitle: opts.noticeTitle, decision: opts.decision },
+      "Email not configured — notice decision email skipped.",
+    );
+    return;
+  }
+
+  const { transporter, fromAddress } = transport;
+
+  const baseUrl = opts.portalBaseUrl ?? process.env["PORTAL_BASE_URL"] ?? "";
+  const clubUrl = `${baseUrl}/clubs/${opts.clubSlug}`;
+  const subject =
+    opts.decision === "approved"
+      ? `Notice Approved: "${opts.noticeTitle}" is now live`
+      : `Notice Update: "${opts.noticeTitle}" was not approved`;
+
+  await transporter.sendMail({
+    from: fromAddress,
+    to: opts.to,
+    subject,
+    html: buildNoticeDecisionHtml(opts.fullName, opts.noticeTitle, opts.clubName, opts.decision, clubUrl),
+    text:
+      opts.decision === "approved"
+        ? `Hello ${opts.fullName},\n\nYour notice "${opts.noticeTitle}" for ${opts.clubName} has been approved and is now visible on the MU Club Portal.`
+        : `Hello ${opts.fullName},\n\nYour notice "${opts.noticeTitle}" for ${opts.clubName} was rejected by the Overseer. You may revise and resubmit from your dashboard.`,
+  });
+
+  logger.info({ to: opts.to, noticeTitle: opts.noticeTitle, decision: opts.decision }, "Notice decision email sent");
 }
 
 export async function sendMembershipDecisionEmail(

@@ -1,10 +1,11 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import mongoose from "mongoose";
-import { Notice, Club, Membership } from "@workspace/db";
+import { Notice, Club, Membership, User } from "@workspace/db";
 import { CreateNoticeBody, ApproveNoticeBody } from "@workspace/api-zod";
 import { getCurrentUser, requireAuth } from "../lib/auth.js";
 import { serializeNotice } from "../lib/serializers.js";
 import { createNotification } from "../lib/notify.js";
+import { sendNoticeDecisionEmail } from "../lib/mailer.js";
 
 const router: IRouter = Router();
 
@@ -247,8 +248,9 @@ router.post(
     }
 
     // Notify the notice author of the decision
+    const authorId = s((updated as any).authorId);
     await createNotification({
-      recipientId: s((updated as any).authorId),
+      recipientId: authorId,
       type: parsed.data.decision === "approved" ? "notice_approved" : "notice_rejected",
       message:
         parsed.data.decision === "approved"
@@ -256,6 +258,19 @@ router.post(
           : `Your notice "${(updated as any).title}" was rejected by the overseer.`,
       link: "/notices",
     });
+
+    // Fire-and-forget email to the notice author
+    User.findById(authorId).lean().then((author) => {
+      if (!author) return;
+      sendNoticeDecisionEmail({
+        to: (author as any).email,
+        fullName: (author as any).fullName,
+        noticeTitle: (updated as any).title,
+        clubName: clubName ?? "",
+        clubSlug: clubSlug ?? "",
+        decision: parsed.data.decision,
+      }).catch((err: unknown) => req.log.warn({ err }, "Notice decision email failed"));
+    }).catch(() => {});
 
     res.json(
       serializeNotice({

@@ -4,6 +4,7 @@ import { Event, EventRsvp, Membership, Club, User } from "@workspace/db";
 import { getCurrentUser, requireAuth } from "../lib/auth.js";
 import { serializeEvent, serializeUserPublic } from "../lib/serializers.js";
 import { createNotification } from "../lib/notify.js";
+import { sendEventDecisionEmail } from "../lib/mailer.js";
 
 const router: IRouter = Router();
 
@@ -213,6 +214,19 @@ router.post(
           : `Your event "${(updated as any).title}" was rejected by the overseer.`,
       link: `/clubs/${(club as any)?.slug ?? ""}`,
     });
+
+    // Fire-and-forget email to the event creator
+    User.findById(creatorId).lean().then((creator) => {
+      if (!creator) return;
+      sendEventDecisionEmail({
+        to: (creator as any).email,
+        fullName: (creator as any).fullName,
+        eventTitle: (updated as any).title,
+        clubName: (club as any)?.name ?? "",
+        clubSlug: (club as any)?.slug ?? "",
+        decision,
+      }).catch((err: unknown) => req.log.warn({ err }, "Event decision email failed"));
+    }).catch(() => {});
 
     res.json(
       serializeEvent({

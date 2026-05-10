@@ -1,0 +1,123 @@
+Add this extra production-level section to your existing prompt so the AI/dev also fixes the automatic logout problem when switching tabs or minimizing the browser:
+
+==================================================
+PHASE 9 — SESSION PERSISTENCE & AUTO-LOGOUT FIX
+===============================================
+
+Critical Production Issue:
+After login, if the user:
+
+* Switches browser tabs
+* Minimizes the browser
+* Leaves the app idle briefly
+* Refreshes the page
+* Returns after some time
+
+The app automatically logs the user out unexpectedly.
+
+This creates a poor UX and indicates session persistence or auth state synchronization problems.
+
+Investigate and FIX the entire session persistence architecture.
+
+Possible causes to investigate:
+
+* React state reset on tab visibility change
+* Auth context reinitialization
+* Missing persistent session restore
+* Cookie expiration issues
+* JWT expiration misconfiguration
+* Browser losing credentials
+* React Query clearing cache aggressively
+* Session verification failing during Render cold starts
+* Visibility change event triggering logout
+* Token refresh logic missing or broken
+* Incorrect SameSite/Secure cookie settings
+* Memory-only auth storage
+* Race conditions during app hydration
+
+Requirements:
+
+1. Persistent Authentication
+
+* User must remain logged in across:
+
+  * Tab switches
+  * Browser minimize
+  * Page refresh
+  * Temporary internet interruption
+  * Render backend cold starts
+
+2. Auth Restore Logic
+   Implement a robust auth bootstrap flow:
+
+* On app startup:
+
+  * Check existing session/token
+  * Restore user state silently
+  * Delay logout until verification completes
+  * Show loading state during auth restore
+
+3. Prevent False Logout
+   Do NOT logout users because:
+
+* One request failed
+* Backend is temporarily asleep
+* Session verification timed out once
+* Browser tab became inactive
+
+4. Session Retry Strategy
+   If auth verification fails:
+
+* Retry automatically before logout
+* Handle Render cold starts gracefully
+* Only logout after confirmed unauthorized response (401/403)
+
+5. Browser Visibility Handling
+   Audit:
+
+* visibilitychange listeners
+* focus/refetch handlers
+* React Query refetchOnWindowFocus behavior
+
+Ensure:
+
+* Tab switching does NOT clear auth state
+* Window focus does NOT trigger forced logout
+* Returning to the app restores cached user instantly
+
+6. React Query Auth Caching
+   Optimize auth/user query:
+
+* staleTime: long enough
+* Avoid aggressive invalidation
+* Cache authenticated user properly
+* Prevent unnecessary /me requests
+
+7. Cookie & JWT Validation
+   Verify production cookie settings:
+
+* httpOnly
+* secure
+* sameSite: "none"
+* proper expiration/maxAge
+
+Ensure tokens/sessions survive refreshes correctly.
+
+8. Logout Logic Refactor
+   Audit all logout triggers in frontend/backend.
+
+Ensure logout ONLY happens when:
+
+* User manually logs out
+* Token/session is genuinely invalid
+* Backend explicitly returns unauthorized repeatedly
+
+9. Final Expected Result
+
+* User remains logged in reliably
+* No logout on tab switch
+* No logout on browser minimize
+* No logout after refresh
+* Stable auth persistence on Vercel + Render production
+* Seamless session restoration
+* Smooth UX even during backend cold starts

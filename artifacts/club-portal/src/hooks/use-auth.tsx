@@ -39,7 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    retry: false,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status === 401) return false;
+      return failureCount < 2;
+    },
+    retryDelay: (attempt) => Math.min(2000 * 2 ** attempt, 10000),
   });
 
   const loginMutation = useMutation({

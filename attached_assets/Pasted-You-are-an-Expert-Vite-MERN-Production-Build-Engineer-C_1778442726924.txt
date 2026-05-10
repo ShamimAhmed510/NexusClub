@@ -1,0 +1,176 @@
+You are an Expert Vite + MERN Production Build Engineer.
+
+Current Problem:
+The frontend build is failing after implementing manual chunk splitting in vite.config.ts.
+
+Error:
+"Circular chunk dependency detected:
+vendor -> react-core -> vendor"
+
+Because of this:
+
+* Vercel deployment shows a white screen
+* Production bundle is broken
+* App fails to load correctly
+
+Your Task:
+Carefully fix the Vite chunking configuration WITHOUT breaking the existing frontend application.
+
+IMPORTANT:
+
+* Do NOT rewrite the whole vite.config.ts unnecessarily
+* Do NOT remove existing plugins/config unless required
+* Keep the project production-safe
+* Ensure compatibility with Vercel deployment
+
+====================================================
+MAIN OBJECTIVE
+==============
+
+Fix the circular dependency issue caused by manualChunks.
+
+====================================================
+REQUIRED FIXES
+==============
+
+1. Simplify manualChunks logic
+
+* Remove any circular dependency between:
+
+  * vendor
+  * react-core
+  * router
+  * ui
+  * other shared chunks
+
+2. IMPORTANT:
+   Do NOT create separate chunks for:
+
+* react
+* react-dom
+* scheduler
+* react-router
+
+unless absolutely necessary.
+
+3. Preferred Solution:
+   Use ONE of these safe approaches:
+
+OPTION A (Recommended):
+
+* Merge react-core back into vendor
+
+OR
+
+OPTION B:
+
+* Remove manual chunking for React libraries entirely
+* Let Vite/Rollup automatically optimize core dependencies
+
+4. Keep chunk splitting ONLY for truly heavy libraries if needed:
+   Examples:
+
+* chart.js
+* editor libraries
+* monaco
+* recharts
+* framer-motion
+* lucide-react
+* large UI frameworks
+
+5. Ensure:
+
+* No circular references
+* No duplicated React instances
+* No hydration/runtime issues
+* No white screen after deploy
+
+====================================================
+BUILD VERIFICATION (VERY IMPORTANT)
+===================================
+
+After fixing vite.config.ts:
+
+1. Run:
+   npm run build
+   OR
+   pnpm build
+
+inside the Replit terminal.
+
+2. Verify:
+
+* Build completes successfully
+* No circular dependency warnings
+* No Rollup chunk errors
+* No failed imports
+* No unresolved modules
+
+3. Then run preview locally if possible:
+   npm run preview
+
+4. Confirm:
+
+* Frontend loads correctly
+* Routing works
+* Authentication still works
+* No blank white screen
+
+====================================================
+OPTIMIZED SAFE EXAMPLE
+======================
+
+Use a production-safe manualChunks strategy similar to this:
+
+manualChunks(id) {
+if (id.includes('node_modules')) {
+
+```
+// Keep React ecosystem together
+if (
+  id.includes('react') ||
+  id.includes('react-dom') ||
+  id.includes('react-router')
+) {
+  return 'vendor';
+}
+
+// Heavy libraries only
+if (
+  id.includes('recharts') ||
+  id.includes('chart.js')
+) {
+  return 'charts';
+}
+
+if (id.includes('framer-motion')) {
+  return 'motion';
+}
+
+return 'vendor';
+```
+
+}
+}
+
+IMPORTANT:
+Avoid creating multiple interdependent chunks for React ecosystem packages.
+
+====================================================
+FINAL REQUIREMENTS
+==================
+
+After fixing:
+
+* Show the final updated vite.config.ts
+* Explain what caused the circular dependency
+* Explain why the new chunking strategy is stable
+* Confirm the build passed locally before finalizing
+
+MOST IMPORTANT:
+Do NOT leave the project in a partially working state.
+The final build must work correctly on:
+
+* Localhost
+* Replit
+* Vercel Production Deployment

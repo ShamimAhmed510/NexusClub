@@ -32,6 +32,7 @@ import {
   serializePost,
 } from "../lib/serializers.js";
 import { createNotification, createNotifications } from "../lib/notify.js";
+import { sendMembershipDecisionEmail } from "../lib/mailer.js";
 import bcrypt from "bcryptjs";
 
 const router: IRouter = Router();
@@ -663,6 +664,19 @@ router.post(
     });
 
     const u = await User.findById((joinReq as any).userId).lean();
+
+    // Send email notification — non-blocking, errors are only logged
+    if ((u as any)?.email) {
+      sendMembershipDecisionEmail({
+        to: (u as any).email,
+        fullName: (u as any).fullName ?? "Member",
+        clubName: (club as any).name,
+        clubSlug: (club as any).slug,
+        decision,
+      }).catch((err) => {
+        req.log.warn({ err }, "Failed to send membership decision email — non-fatal");
+      });
+    }
     res.json(
       serializeJoinRequest({
         id,
